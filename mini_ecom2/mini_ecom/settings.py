@@ -11,11 +11,12 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 import os
 from pathlib import Path
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
+load_dotenv()
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
@@ -134,7 +135,14 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework.authentication.TokenAuthentication",
         "rest_framework.authentication.SessionAuthentication",
-    ]
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "signup": "10/day",  # 10 signups per day per IP
+        "login": "5/minute",  # 5 login attempts per minute per IP
+        "password_reset": "5/hour",  # 5 password reset requests per hour per IP
+        "anon": "100/day",  # General anonymous requests
+        "user": "1000/day",  # Authenticated user requests
+    },
 }
 
 # Set Up STMP for sending emails
@@ -146,9 +154,9 @@ REST_FRAMEWORK = {
 # EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 # DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-DEFAULT_FROM_EMAIL = 'noreply@mini-ecom.com'
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+DEFAULT_FROM_EMAIL = "noreply@mini-ecom.com"
 
 PASSWORD_RESET_TIMEOUT = 3600
 
-FRONTEND_URL = 'http://localhost:3000' # Se to this because i do not have a frontend for now
+FRONTEND_URL = "http://localhost:3000"
