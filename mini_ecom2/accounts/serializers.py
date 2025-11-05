@@ -6,8 +6,101 @@ from django.utils.encoding import force_bytes, force_str
 from django.core.mail import send_mail
 from django.conf import settings
 from django.contrib.auth.tokens import default_token_generator
+from dj_rest_auth.registration.serializers import RegisterSerializer
+from dj_rest_auth.serializers import (
+    LoginSerializer,
+    PasswordResetSerializer,
+    PasswordResetConfirmSerializer,
+    UserDetailsSerializer
+)
+from allauth.account.adapter import get_adapter
+from allauth.account.utils import setup_user_email
+from django.contrib.auth import authenticate
 
+#  Custom User details serializer
+class CustomUserDetailsSerializer(UserDetailsSerializer):
+    """
+    Extended user details with custom fields
+    """
 
+    class Meta(UserDetailsSerializer.Meta):
+        model = CustomUser
+        fields = UserDetailsSerializer.Meta.fields + ('display_name', 'is_verified')
+        read_only_fields = ('email', 'is_verified')
+# Custom Registration serializer
+class CustomRegisterSerializer(RegisterSerializer):
+    """
+    Custom registeration with display_name and email verification
+    """
+    display_name = serializers.CharField(max_length=50, required=False)
+
+    def get_cleaned_data(self):
+        data = super().get_cleaned_data()
+        data['display_name'] = self.validated_data.get('display_name', '')
+        return data
+    
+    def save(self, request):
+        adapter = get_adapter()
+        user = adapter.new_user(request)
+        self.cleaned_data = self.get_cleaned_data()
+        user.display_name = self.cleaned_data.get('display_name', '')
+        user.is_verified =False
+        user.is_active=False
+        user = adapter.save_user(request, user, self, commit=False)
+
+        user.save()
+
+        # Send verification email with allauth
+
+        setup_user_email(request, user, [])
+
+        return user
+    
+
+class CustomLoginSerializer(LoginSerializer):
+    """
+    Login with email verification and 2FA check
+    """
+
+    def validate(self, attrs):
+        # First, Validate credentials
+        username = attrs.get('username')
+        email = attrs.get('email')
+        password = attrs.get('password')
+
+        # Get user
+        user = None
+
+        if email:
+            try:
+                user = CustomUser.objects.get(email=email)
+            except CustomUser.DoesNotExist:
+                pass
+
+        if not user and username:
+            try:
+                user = CustomUser.objects.get(username=username)
+            except CustomUser.DoesNotExist:
+                pass
+        if not user:
+            raise serializers.ValidationError("Invalid credentials")
+        # Check user password
+        if not user.check_password(password):
+            raise serializers.ValidationError("Invalid credentials")
+        # Check email verification
+        if not user.is_verified:
+            raise serializers.ValidationError({
+                "detail": "Please verify your email before logging in",
+                "verification_required": True
+            })  
+        # Acticate user if ot active
+        if not user.is_active:
+            user.is_active = True
+            user.save(update_fields=['is_active'])
+
+        attrs[['user']] = user
+        return attrs  
+        
 class WriteOnceField(serializers.Field):
     """
     A field that can only be set once. After initial creation,
@@ -337,10 +430,7 @@ class EmailVerficationConfirmSerializer(serializers.Serializer):
         try:
             uid = force_str(urlsafe_base64_decode(attrs["uid"]))
             user = CustomUser.objects.get(pk=uid)
-        except (
-            Exception
-        ) as e:  # (TypeError, ValueError, OverflowError, CustomUser.DoesNotExist):
-            print(str(e))
+        except Exception   (TypeError, ValueError, OverflowError, CustomUser.DoesNotExist):
             raise serializers.ValidationError({"uid": "Invalid verification link."})
 
         # Check if user already verified

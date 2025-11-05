@@ -38,10 +38,31 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "accounts",
-    # 'djoser',
+
+    # Third party apps
     "rest_framework",
     "rest_framework.authtoken",
+
+    #Authentication apps
+    "dj_rest_auth",
+    "dj_rest_auth.registration",
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
+
+    #Social providers Needed
+    "allauth.socialaccount.providers.google",
+    "allauth.socialaccount.providers.facebook",
+    # For learning purposes
+    "allauth.socialaccount.providers.github",
+    # 2FA
+    "django_otp",
+    "django_otp.plugins.otp_totp",
+    "django_otp.plugins.otp_static",
+    #Apps
+    "accounts",
+
+
 ]
 
 MIDDLEWARE = [
@@ -50,8 +71,14 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "django.contrib.messages.middleware.MessageMiddleware",
+ 
+    # 2FA 
+    "django_otp.middleware.OTPMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",   
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+
+    # Allauth middleware
+    "allauth.account.middleware.AccountMiddleware",
 ]
 
 ROOT_URLCONF = "mini_ecom.urls"
@@ -125,6 +152,7 @@ STATIC_URL = "static/"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 MEDIA_URL = "media/"
+
 MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
@@ -133,8 +161,14 @@ AUTH_USER_MODEL = "accounts.CustomUser"
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
+        "dj_rest_auth.jwt_auth.JWTCookieAuthentication",
+
+        # For backward compatibilty
         "rest_framework.authentication.TokenAuthentication",
         "rest_framework.authentication.SessionAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
     ],
     "DEFAULT_THROTTLE_RATES": {
         "signup": "10/day",  # 10 signups per day per IP
@@ -145,6 +179,66 @@ REST_FRAMEWORK = {
     },
 }
 
+from datetime import timedelta
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION":True,
+    "UPDATE_LAST_LOGIN": True,
+
+    "ALGORITHM": "HS256",
+    "SIGNING_KEY" : SECRET_KEY,
+    "VERIFYING_KEY": None,
+    "AUDIENCE": None,
+    "ISSURE": None,
+
+    "AUTH_HEADER_TYPES": ('Bearer',),
+    "AUTH_HEADER_NAME": "HTTP_AUTHORIZATION",
+    "USER_ID_FIELD": "id",
+    "USER_ID_CLAIM": "user_id",
+
+    "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
+    "TOKEN_TYPE_CLAIM": "token_type", 
+}
+REST_AUTH = {
+    'USE_JWT': True,
+    'JWT_AUTH_COOKIE':'jwt-auth',
+    'JWT_AUTH_REFRESH_COOKIE': 'jwt-refresh',
+    'JWT_AUTH_HTTPONLY': True,
+    'JWT_AUTH_SAMESITE': 'Lax',
+
+
+    'USER_DETAILS_SERIALIZER': 'accounts.serializers.CustomUserDetailsSerializer',
+    'REGISTER_SERIALIZER': 'accounts.serializers.CustomRegisterSerializer',
+
+    'PASSWORD_RESET_SERIALIZER': 'accounts.serializers.CustomPasswordResetSerializer',
+    'PASSWORD_RESET_CONFIRM_SERIALIZER': 'accounts.serializers.CustomPasswordResetConfirmSerializer',
+
+
+    'LOGIN_SERIALIZER': 'accounts.serializers.CustomLoginSerializer',
+
+    'OLD_PASSWORD_FIELD_ENABLED': True,      
+    'LOGOUT_ON_PASSWORD_CHANGE': False,     
+}
+
+# Allauth settings
+ACCOUNT_AUTHENTICATION_METHOD = 'email'
+ACCOUNT_EMAIL_REQUIRED = True 
+ACCOUNT_USERNAME_REQUIRED = True 
+ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
+ACCOUNT_CONFIRM_EMAIL_ON_GET = True
+ACCOUNT_EMAIL_CONFIRMATION_EXPIRE_DAYS = 3
+ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
+ACCOUNT_UNIQUE_EMAIL = True
+ACCOUNT_LOGOUT_ON_GET = False
+
+# Social account settings
+SOCIALACCOUNT_AUTO_SIGNUP = True 
+SOCIALACCOUNT_EMAIL_VERIFICATION = 'none'
+SOCIALACCOUNT_QUERY_EMAIL = True 
+ 
 # Set Up STMP for sending emails
 # EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 # EMAIL_HOST = "smtp.gmail.com"
@@ -158,5 +252,7 @@ EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 DEFAULT_FROM_EMAIL = "noreply@mini-ecom.com"
 
 PASSWORD_RESET_TIMEOUT = 3600
-
 FRONTEND_URL = "http://localhost:3000"
+
+OTP_TOTP_ISSUER = 'Mini E-Come'
+OTP_LOGIN_URL = '/api/accounts/2fa/verify/'
