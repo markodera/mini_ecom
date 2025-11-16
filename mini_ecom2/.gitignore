@@ -1,0 +1,5 @@
+.env
+*.env
+.env.*
+client_secret_*.json
+.github

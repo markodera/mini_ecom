@@ -6,7 +6,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils import timezone
 from django.core.exceptions import ValidationError
-
+from phonenumber_field.modelfields import PhoneNumberField
 from rest_framework.authtoken.models import Token
 
 
@@ -21,20 +21,16 @@ GENDER = [("male", "Male"), ("female", "Female"), ("rather_not_say", "Rather not
 
 class CustomUser(AbstractUser):
     email = models.EmailField(max_length=225, unique=True, null=False, blank=False)
+    phone_number = PhoneNumberField(blank=True, null=True, unique=True)
+
     display_name = models.CharField(
         max_length=225,
         blank=True,
         null=True,
         help_text="This will be your name others will know you as.",
     )
-    """This is to validate that users used a real enail when signing up"""
-    is_verified = models.BooleanField(
-        "Email verified",
-        default=False,
-        help_text="Whether the user's email has been verified",
-    )
     USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = ["username"]
+    REQUIRED_FIELDS = ["username"] 
 
     def __str__(self):
         return self.username

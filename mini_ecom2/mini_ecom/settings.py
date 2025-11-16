@@ -26,8 +26,9 @@ SECRET_KEY = "django-insecure-x&8p%t48dt$r3%faid1y_(o@0d(x#ogvh$9rwa6#jp=tka-bf+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = []
 
+FRONTEND_URL = "http://localhost:3000"
 
 # Application definition
 
@@ -38,10 +39,11 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.sites",
 
     # Third party apps
     "rest_framework",
-    "rest_framework.authtoken",
+    "rest_framework_simplejwt.token_blacklist", 
 
     #Authentication apps
     "dj_rest_auth",
@@ -53,15 +55,15 @@ INSTALLED_APPS = [
     #Social providers Needed
     "allauth.socialaccount.providers.google",
     "allauth.socialaccount.providers.facebook",
-    # For learning purposes
-    "allauth.socialaccount.providers.github",
+
     # 2FA
     "django_otp",
     "django_otp.plugins.otp_totp",
     "django_otp.plugins.otp_static",
+
     #Apps
     "accounts",
-
+    "phonenumber_field",
 
 ]
 
@@ -160,13 +162,13 @@ AUTH_USER_MODEL = "accounts.CustomUser"
 
 
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": [
-        "dj_rest_auth.jwt_auth.JWTCookieAuthentication",
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "dj_rest_auth.jwt_auth.JWTCookieAuthentication", # Web (cookies)
 
-        # For backward compatibilty
-        "rest_framework.authentication.TokenAuthentication",
+        "rest_framework_simplejwt.authentication.JWTAuthentication", # Mobile (header)
+
         "rest_framework.authentication.SessionAuthentication",
-    ],
+    ),
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
@@ -179,6 +181,18 @@ REST_FRAMEWORK = {
     },
 }
 
+
+SITE_ID = 1
+
+AUTHENTICATION_BACKENDS = [
+    # Needed to login users by username in django admin
+    "django.contrib.auth.backends.ModelBackend",
+
+    # allauth specific authentication method (login by email)
+    "allauth.account.auth_backends.AuthenticationBackend"
+]
+
+
 from datetime import timedelta
 
 SIMPLE_JWT = {
@@ -190,12 +204,12 @@ SIMPLE_JWT = {
 
     "ALGORITHM": "HS256",
     "SIGNING_KEY" : SECRET_KEY,
-    "VERIFYING_KEY": None,
-    "AUDIENCE": None,
-    "ISSURE": None,
+    # "VERIFYING_KEY": None,
+    # "AUDIENCE": None,
+    # "ISSUER": None,
 
     "AUTH_HEADER_TYPES": ('Bearer',),
-    "AUTH_HEADER_NAME": "HTTP_AUTHORIZATION",
+    # "AUTH_HEADER_NAME": "HTTP_AUTHORIZATION",
     "USER_ID_FIELD": "id",
     "USER_ID_CLAIM": "user_id",
 
@@ -206,39 +220,53 @@ REST_AUTH = {
     'USE_JWT': True,
     'JWT_AUTH_COOKIE':'jwt-auth',
     'JWT_AUTH_REFRESH_COOKIE': 'jwt-refresh',
-    'JWT_AUTH_HTTPONLY': True,
+    'JWT_AUTH_HTTPONLY': False,
     'JWT_AUTH_SAMESITE': 'Lax',
+    'TOKEN_MODEL': None,
 
 
     'USER_DETAILS_SERIALIZER': 'accounts.serializers.CustomUserDetailsSerializer',
     'REGISTER_SERIALIZER': 'accounts.serializers.CustomRegisterSerializer',
 
-    'PASSWORD_RESET_SERIALIZER': 'accounts.serializers.CustomPasswordResetSerializer',
-    'PASSWORD_RESET_CONFIRM_SERIALIZER': 'accounts.serializers.CustomPasswordResetConfirmSerializer',
-
 
     'LOGIN_SERIALIZER': 'accounts.serializers.CustomLoginSerializer',
-
+    'EMAIL_VERIFICATION': 'mandatory',
     'OLD_PASSWORD_FIELD_ENABLED': True,      
     'LOGOUT_ON_PASSWORD_CHANGE': False,     
+
+    'SESSION_LOGIN': False,
+    'REGISTER_PERMISSION_CLASSES': ('rest_framework.permissions.AllowAny',),  
+
 }
 
 # Allauth settings
-ACCOUNT_AUTHENTICATION_METHOD = 'email'
-ACCOUNT_EMAIL_REQUIRED = True 
-ACCOUNT_USERNAME_REQUIRED = True 
 ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
-ACCOUNT_CONFIRM_EMAIL_ON_GET = True
-ACCOUNT_EMAIL_CONFIRMATION_EXPIRE_DAYS = 3
-ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
 ACCOUNT_UNIQUE_EMAIL = True
+ACCOUNT_CONFIRM_EMAIL_ON_GET = False
+ACCOUNT_EMAIL_CONFIRMATION_EXPIRE_DAYS = 3
+ACCOUNT_USER_MODEL_USERNAME_FIELD = 'username'
+ACCOUNT_USER_MODEL_EMAIL_FIELD = 'email'
 ACCOUNT_LOGOUT_ON_GET = False
+ACCOUNT_LOGIN_METHODS = {'email'}
+ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
+ACCOUNT_EMAIL_SUBJECT_PREFIX = '[Mini E-com]'
+ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'http'
 
+ACCOUNT_EMAIL_CONFIRMATION_AUTHENTICATED_REDIRECT_URL = None
+ACCOUNT_EMAIL_CONFIRMATION_ANONYMOUS_REDIRECT_URL = FRONTEND_URL + '/email-verified/'
+ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = False
+ACCOUNT_EMAIL_NOTIFICATIONS = True
 # Social account settings
 SOCIALACCOUNT_AUTO_SIGNUP = True 
 SOCIALACCOUNT_EMAIL_VERIFICATION = 'none'
 SOCIALACCOUNT_QUERY_EMAIL = True 
  
+SOCIALACCOUNT_ADAPTER = 'accounts.adapters.CustomSocialAccountAdapter'
+ACCOUNT_ADAPTER = 'accounts.adapters.CustomAccountAdapter'
+
+ACCOUNT_MAX_EMAIL_ADDRESSES = 1
+ACCOUNT_EMAIL_CONFIRMATION_HMAC = True
+
 # Set Up STMP for sending emails
 # EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 # EMAIL_HOST = "smtp.gmail.com"
@@ -248,11 +276,27 @@ SOCIALACCOUNT_QUERY_EMAIL = True
 # EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 # DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+PHONENUMBER_DEFAULT_REGION = 'NG'
+
 DEFAULT_FROM_EMAIL = "noreply@mini-ecom.com"
 
 PASSWORD_RESET_TIMEOUT = 3600
-FRONTEND_URL = "http://localhost:3000"
 
-OTP_TOTP_ISSUER = 'Mini E-Come'
-OTP_LOGIN_URL = '/api/accounts/2fa/verify/'
+
+OTP_TOTP_ISSUER = 'Mini E-Com'
+
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'SCOPE': [
+            'profile',
+            'email',
+        ],
+        'AUTH_PARAMS': {
+            'access_type': 'offline',
+        },
+    }
+}
+SOCIALACCOUNT_GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
+SOCIALACCOUNT_GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET')

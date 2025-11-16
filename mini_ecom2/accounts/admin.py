@@ -18,34 +18,32 @@ class CustomUserAdmin(BaseUserAdmin):
     list_display = [
         "username",
         "email",
+        "phone_number",
         "first_name",
         "last_name",
         "display_name",
-        "is_verified",
         "is_active",
         "date_joined",
     ]
     list_filter = [
         "is_active",
-        "is_verified",
         "is_staff",
         "is_superuser",
         "date_joined",
     ]
     list_display_links = ["email", "username"]
-    search_fields = ["username", "email", "first_name", "last_name"]
+    search_fields = ["username", "email", "first_name", "last_name", "phone_number"]
     ordering = ["-date_joined"]
     fieldsets = (
         (None, {"fields": ("username", "password")}),
         (
             "Personal Info",
-            {"fields": ("display_name", "email", "first_name", "last_name")},
+            {"fields": ("display_name", "email","phone_number", "first_name", "last_name")},
         ),
         (
             "Verification & Permissions",
             {
                 "fields": (
-                    "is_verified",
                     "is_active",
                     "is_staff",
                     "is_superuser",
@@ -67,7 +65,6 @@ class CustomUserAdmin(BaseUserAdmin):
                     "email",
                     "password1",
                     "password2",
-                    "is_verified",
                     "is_active",
                 ),
             },
@@ -81,13 +78,12 @@ class CustomAdminProfile(admin.ModelAdmin):
     list_display = [
         "user",
         "get_email",
-        "get_verified_status",
         "gender",
         "date_of_birth",
         "profile_picture_preview",
         "created_at",
     ]
-    list_filter = ["gender", "created_at", "user__is_verified"]
+    list_filter = ["gender", "created_at"]
     search_fields = ["user__username", "user__email", "bio"]
     readonly_fields = ["created_at", "updated_at", "profile_picture_preview"]
     ordering = ["-created_at"]
@@ -110,15 +106,6 @@ class CustomAdminProfile(admin.ModelAdmin):
 
     get_email.short_description = "Email"
     get_email.admin_order_field = "user__email"
-
-    def get_verified_status(self, obj):
-        """Display verification status"""
-        if obj.user.is_verified:
-            return "Verified"
-        return "Not verified"
-
-    get_verified_status.short_description = "Verfication"
-    get_verified_status.admin_order_field = "user__is_verified"
 
     def profile_picture_preview(self, obj):
         if obj.profile_picture:
