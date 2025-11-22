@@ -21,7 +21,7 @@ load_dotenv()
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-x&8p%t48dt$r3%faid1y_(o@0d(x#ogvh$9rwa6#jp=tka-bf+"
+SECRET_KEY = os.getenv("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -40,31 +40,25 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django.contrib.sites",
-
     # Third party apps
     "rest_framework",
-    "rest_framework_simplejwt.token_blacklist", 
-
-    #Authentication apps
+    "rest_framework_simplejwt.token_blacklist",
+    # Authentication apps
     "dj_rest_auth",
     "dj_rest_auth.registration",
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
-
-    #Social providers Needed
+    # Social providers Needed
     "allauth.socialaccount.providers.google",
     "allauth.socialaccount.providers.facebook",
-
     # 2FA
     "django_otp",
     "django_otp.plugins.otp_totp",
     "django_otp.plugins.otp_static",
-
-    #Apps
+    # Apps
     "accounts",
     "phonenumber_field",
-
 ]
 
 MIDDLEWARE = [
@@ -73,12 +67,10 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
- 
-    # 2FA 
+    # 2FA
     "django_otp.middleware.OTPMiddleware",
-    "django.contrib.messages.middleware.MessageMiddleware",   
+    "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-
     # Allauth middleware
     "allauth.account.middleware.AccountMiddleware",
 ]
@@ -109,12 +101,11 @@ WSGI_APPLICATION = "mini_ecom.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.getenv('NAME'),
-        "USER": os.getenv('USER'),
-        "PASSWORD": os.getenv('PASSWORD'),
-        "HOST": os.getenv('HOST'),
-        "PORT": os.getenv('PORT', 5432)
-
+        "NAME": os.getenv("NAME"),
+        "USER": os.getenv("USER"),
+        "PASSWORD": os.getenv("PASSWORD"),
+        "HOST": os.getenv("HOST"),
+        "PORT": os.getenv("PORT", 5432),
     }
 }
 
@@ -154,6 +145,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "static/"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -168,18 +160,14 @@ AUTH_USER_MODEL = "accounts.CustomUser"
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        "dj_rest_auth.jwt_auth.JWTCookieAuthentication", # Web (cookies)
-
-        "rest_framework_simplejwt.authentication.JWTAuthentication", # Mobile (header)
-
+        "dj_rest_auth.jwt_auth.JWTCookieAuthentication",  # Web (cookies)
+        "rest_framework_simplejwt.authentication.JWTAuthentication",  # Mobile (header)
         "rest_framework.authentication.SessionAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
-    "DEFAULT_THROTTLE_RATES": {
-      
-    },
+    "DEFAULT_THROTTLE_RATES": {},
 }
 
 
@@ -188,9 +176,8 @@ SITE_ID = 1
 AUTHENTICATION_BACKENDS = [
     # Needed to login users by username in django admin
     "django.contrib.auth.backends.ModelBackend",
-
     # allauth specific authentication method (login by email)
-    "allauth.account.auth_backends.AuthenticationBackend"
+    "allauth.account.auth_backends.AuthenticationBackend",
 ]
 
 
@@ -200,43 +187,35 @@ SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
     "ROTATE_REFRESH_TOKENS": True,
-    "BLACKLIST_AFTER_ROTATION":True,
+    "BLACKLIST_AFTER_ROTATION": True,
     "UPDATE_LAST_LOGIN": True,
-
     "ALGORITHM": "HS256",
-    "SIGNING_KEY" : SECRET_KEY,
+    "SIGNING_KEY": SECRET_KEY,
     # "VERIFYING_KEY": None,
     # "AUDIENCE": None,
     # "ISSUER": None,
-
-    "AUTH_HEADER_TYPES": ('Bearer',),
+    "AUTH_HEADER_TYPES": ("Bearer",),
     # "AUTH_HEADER_NAME": "HTTP_AUTHORIZATION",
     "USER_ID_FIELD": "id",
     "USER_ID_CLAIM": "user_id",
-
     "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
-    "TOKEN_TYPE_CLAIM": "token_type", 
+    "TOKEN_TYPE_CLAIM": "token_type",
 }
 REST_AUTH = {
-    'USE_JWT': True,
-    'JWT_AUTH_COOKIE':'jwt-auth',
-    'JWT_AUTH_REFRESH_COOKIE': 'jwt-refresh',
-    'JWT_AUTH_HTTPONLY': False,
-    'JWT_AUTH_SAMESITE': 'Lax',
-    'TOKEN_MODEL': None,
-
-
-    'USER_DETAILS_SERIALIZER': 'accounts.serializers.CustomUserDetailsSerializer',
-    'REGISTER_SERIALIZER': 'accounts.serializers.CustomRegisterSerializer',
-
-
-    'LOGIN_SERIALIZER': 'accounts.serializers.CustomLoginSerializer',
-    'EMAIL_VERIFICATION': 'mandatory',
-    'OLD_PASSWORD_FIELD_ENABLED': True,      
-    'LOGOUT_ON_PASSWORD_CHANGE': False,     
-
-    'SESSION_LOGIN': False,
-    'REGISTER_PERMISSION_CLASSES': ('rest_framework.permissions.AllowAny',)
+    "USE_JWT": True,
+    "JWT_AUTH_COOKIE": "jwt-auth",
+    "JWT_AUTH_REFRESH_COOKIE": "jwt-refresh",
+    "JWT_AUTH_HTTPONLY": False,
+    "JWT_AUTH_SAMESITE": "Lax",
+    "TOKEN_MODEL": None,
+    "USER_DETAILS_SERIALIZER": "accounts.serializers.CustomUserDetailsSerializer",
+    "REGISTER_SERIALIZER": "accounts.serializers.CustomRegisterSerializer",
+    "LOGIN_SERIALIZER": "accounts.serializers.CustomLoginSerializer",
+    "EMAIL_VERIFICATION": "mandatory",
+    "OLD_PASSWORD_FIELD_ENABLED": True,
+    "LOGOUT_ON_PASSWORD_CHANGE": False,
+    "SESSION_LOGIN": False,
+    "REGISTER_PERMISSION_CLASSES": ("rest_framework.permissions.AllowAny",),
 }
 
 LOGGING = {
@@ -257,29 +236,29 @@ LOGGING = {
 }
 
 # Allauth settings
-ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
+ACCOUNT_EMAIL_VERIFICATION = "mandatory"
 ACCOUNT_UNIQUE_EMAIL = True
 ACCOUNT_CONFIRM_EMAIL_ON_GET = False
 ACCOUNT_EMAIL_CONFIRMATION_EXPIRE_DAYS = 3
-ACCOUNT_USER_MODEL_USERNAME_FIELD = 'username'
-ACCOUNT_USER_MODEL_EMAIL_FIELD = 'email'
+ACCOUNT_USER_MODEL_USERNAME_FIELD = "username"
+ACCOUNT_USER_MODEL_EMAIL_FIELD = "email"
 ACCOUNT_LOGOUT_ON_GET = False
-ACCOUNT_LOGIN_METHODS = {'email'}
-ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
-ACCOUNT_EMAIL_SUBJECT_PREFIX = '[Mini E-com]'
-ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'http'
+ACCOUNT_LOGIN_METHODS = {"email"}
+ACCOUNT_SIGNUP_FIELDS = ["email*", "username*", "password1*", "password2*"]
+ACCOUNT_EMAIL_SUBJECT_PREFIX = "[Mini E-com]"
+ACCOUNT_DEFAULT_HTTP_PROTOCOL = "http"
 
 ACCOUNT_EMAIL_CONFIRMATION_AUTHENTICATED_REDIRECT_URL = None
-ACCOUNT_EMAIL_CONFIRMATION_ANONYMOUS_REDIRECT_URL = FRONTEND_URL + '/email-verified/'
+ACCOUNT_EMAIL_CONFIRMATION_ANONYMOUS_REDIRECT_URL = FRONTEND_URL + "/email-verified/"
 ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = False
 ACCOUNT_EMAIL_NOTIFICATIONS = True
 # Social account settings
-SOCIALACCOUNT_AUTO_SIGNUP = True 
-SOCIALACCOUNT_EMAIL_VERIFICATION = 'none'
-SOCIALACCOUNT_QUERY_EMAIL = True 
- 
-SOCIALACCOUNT_ADAPTER = 'accounts.adapters.CustomSocialAccountAdapter'
-ACCOUNT_ADAPTER = 'accounts.adapters.CustomAccountAdapter'
+SOCIALACCOUNT_AUTO_SIGNUP = True
+SOCIALACCOUNT_EMAIL_VERIFICATION = "none"
+SOCIALACCOUNT_QUERY_EMAIL = True
+
+SOCIALACCOUNT_ADAPTER = "accounts.adapters.CustomSocialAccountAdapter"
+ACCOUNT_ADAPTER = "accounts.adapters.CustomAccountAdapter"
 
 ACCOUNT_MAX_EMAIL_ADDRESSES = 1
 ACCOUNT_EMAIL_CONFIRMATION_HMAC = True
@@ -293,56 +272,56 @@ ACCOUNT_EMAIL_CONFIRMATION_HMAC = True
 # EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 # DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
-PHONENUMBER_DEFAULT_REGION = 'NG'
+PHONENUMBER_DEFAULT_REGION = "NG"
 
 DEFAULT_FROM_EMAIL = "noreply@mini-ecom.com"
 
 PASSWORD_RESET_TIMEOUT = 3600
 
 
-OTP_TOTP_ISSUER = 'Mini E-Com'
+OTP_TOTP_ISSUER = "Mini E-Com"
 
 SOCIALACCOUNT_PROVIDERS = {
-    'google': {
-        'SCOPE': [
-            'profile',
-            'email',
+    "google": {
+        "SCOPE": [
+            "profile",
+            "email",
         ],
-        'AUTH_PARAMS': {
-            'access_type': 'offline',
+        "AUTH_PARAMS": {
+            "access_type": "offline",
         },
     },
-    'facebook': {
-        'METHOD': 'oauth2',
-        'SCOPE': ['email', 'public_profile'],
-        'AUTH_PARAMS': {'auth_type': 'rerequest'},
-        'INIT_PARAMS': {'cookie': True},
-        'FIELDS': [
-            'id',
-            'email',
-            'first_name',
-            'last_name',
-            'middle_name',
-            'name',
-            'name_format',
-            'picture',
-            'short_name',
+    "facebook": {
+        "METHOD": "oauth2",
+        "SCOPE": ["email", "public_profile"],
+        "AUTH_PARAMS": {"auth_type": "rerequest"},
+        "INIT_PARAMS": {"cookie": True},
+        "FIELDS": [
+            "id",
+            "email",
+            "first_name",
+            "last_name",
+            "middle_name",
+            "name",
+            "name_format",
+            "picture",
+            "short_name",
         ],
-        'EXCHANGE_TOKEN': True,
-        'VERIFIED_EMAIL': False,
-        'VERSION': 'v24.0'
-    }
+        "EXCHANGE_TOKEN": True,
+        "VERIFIED_EMAIL": False,
+        "VERSION": "v24.0",
+    },
 }
-SOCIALACCOUNT_GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
-SOCIALACCOUNT_GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET')
-SOCIALACCOUNT_FACEBOOK_CLIENT_ID = os.getenv('FACEBOOK_CLIENT_ID')
-SOCIALACCOUNT_FACEBOOK_CLIENT_SECRET = os.getenv('FACEBOOK_CLIENT_SECRET')
+SOCIALACCOUNT_GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+SOCIALACCOUNT_GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
+SOCIALACCOUNT_FACEBOOK_CLIENT_ID = os.getenv("FACEBOOK_CLIENT_ID")
+SOCIALACCOUNT_FACEBOOK_CLIENT_SECRET = os.getenv("FACEBOOK_CLIENT_SECRET")
 
-TWILIO_ACCOUNT_SID= os.getenv('TWILIO_ACCOUNT_SID')
-TWILIO_AUTH_TOKEN= os.getenv('TWILIO_AUTH_TOKEN')
-TWILIO_PHONE_NUMBER= os.getenv('TWILIO_PHONE_NUMBER')
+TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
+TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
+TWILIO_PHONE_NUMBER = os.getenv("TWILIO_PHONE_NUMBER")
 
 CACHES = {
     "default": {
@@ -351,41 +330,38 @@ CACHES = {
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
             # "PARSER_CLASS": "redis.connection.HiredisParser",
-            "CONNECTION_POOL_KWARGS": {"max_connections": 50,
-            "retry_on_timeout": True
-            },
+            "CONNECTION_POOL_KWARGS": {"max_connections": 50, "retry_on_timeout": True},
             "SOCKET_CONNECT_TIMEOUT": 5,
             "SOCKET_TIMEOUT": 5,
             "COMPRESSOR": "django_redis.compressors.zlib.ZlibCompressor",
-            "IGNORE_EXCEPTIONS": True
+            "IGNORE_EXCEPTIONS": True,
         },
         "KEY_PREFIX": "mini_ecom",
         "TIMEOUT": 300,
     },
-    "sessions":{
+    "sessions": {
         "BACKEND": "django_redis.cache.RedisCache",
         "LOCATION": "redis://127.0.0.1:6379/2",
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         },
         "KEY_PREFIX": "session",
-
-    }
+    },
 }
 
-SESSION_ENGINE = "django.contrib.sessions.backends.cached_db" 
-SESSION_CACHE_ALIAS="sessions"
+SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
+SESSION_CACHE_ALIAS = "sessions"
 SESSION_COOKIE_AGE = 1209600
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SECURE = not DEBUG
-SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_SAMESITE = "Lax"
 
 PHONE_VERIFICATION = {
-    'CODE_LENGTH': 6,
-    'CODE_EXPIRY_MINUTES': 10,
-    'MAX_ATTEMPTS': 5,
-    'RATE_LIMIT_CODES_PER_HOUR': 3,
-    'RATE_LIMIT_VERIFICATIONS_PER_MINUTE': 5,
-    'USE_REDIS': True,
-    'REDIS_KEY_PREFIX': 'phone_verify'
+    "CODE_LENGTH": 6,
+    "CODE_EXPIRY_MINUTES": 10,
+    "MAX_ATTEMPTS": 5,
+    "RATE_LIMIT_CODES_PER_HOUR": 3,
+    "RATE_LIMIT_VERIFICATIONS_PER_MINUTE": 5,
+    "USE_REDIS": True,
+    "REDIS_KEY_PREFIX": "phone_verify",
 }

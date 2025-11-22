@@ -59,7 +59,9 @@ class CustomSocialAccountAdapterTests(TestCase):
             "Google OAuth should populate display_name via save_user",
         )
 
-    def test_pre_social_login_blocks_when_device_exists_even_if_not_flagged_existing(self):
+    def test_pre_social_login_blocks_when_device_exists_even_if_not_flagged_existing(
+        self,
+    ):
         """Ensure we still raise 202 when the sociallogin object lacks the existing flag."""
 
         user = CustomUser.objects.create_user(
@@ -117,9 +119,7 @@ class GoogleLogin2FATests(TestCase):
 
         view = GoogleLogin.as_view()
 
-        with patch(
-            "accounts.views.TOTPDevice.objects.get"
-        ) as mock_totp_get:
+        with patch("accounts.views.TOTPDevice.objects.get") as mock_totp_get:
             mock_totp_get.return_value = SimpleNamespace(
                 verify_token=lambda token: True
             )

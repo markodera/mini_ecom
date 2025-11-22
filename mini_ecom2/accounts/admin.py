@@ -38,7 +38,15 @@ class CustomUserAdmin(BaseUserAdmin):
         (None, {"fields": ("username", "password")}),
         (
             "Personal Info",
-            {"fields": ("display_name", "email","phone_number", "first_name", "last_name")},
+            {
+                "fields": (
+                    "display_name",
+                    "email",
+                    "phone_number",
+                    "first_name",
+                    "last_name",
+                )
+            },
         ),
         (
             "Verification & Permissions",

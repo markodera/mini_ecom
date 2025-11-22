@@ -18,7 +18,7 @@ class CustomAccountAdapter(DefaultAccountAdapter):
 
     def is_open_for_signup(self, request):
         return True
-    
+
     def save_user(self, request, user, form, commit=True):
         """
         Persist the user via parent class then mark inactive user. Email confirmation is triggered by allalluth we filp the flag.
@@ -30,30 +30,33 @@ class CustomAccountAdapter(DefaultAccountAdapter):
             user.is_active = False
             user.save(update_fields=["is_active"])
         return user
-    
+
     def respond_user_inactive(self, request, user):
         """Return JSON for inactive users"""
-        return JsonResponse({
-            "detail": "User account is inactive. Please verify email address.",
-            "verification_required": True,
-            "email": user.email
-        }, status=403)
-    
+        return JsonResponse(
+            {
+                "detail": "User account is inactive. Please verify email address.",
+                "verification_required": True,
+                "email": user.email,
+            },
+            status=403,
+        )
+
     def clean_email(self, email):
-        email =  super().clean_email(email)
+        email = super().clean_email(email)
         if EmailAddress.objects.filter(email__iexact=email).exists():
             raise ValidationError("Email address already exists.")
         return email
-    
+
     def get_login_redirect_url(self, request):
-        """"No redirects for APIs"""
+        """ "No redirects for APIs"""
         return None
-    
+
     def get_email_verification_redirect_url(self, email_address):
-        
         """No redirects for API"""
         return None
-    
+
+
 class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
     """
     Custom social account adapters
@@ -64,21 +67,19 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
         Populate adapter fields for socail provider data
         Called before save
         """
-        user =  super().populate_user(request, sociallogin, data)
+        user = super().populate_user(request, sociallogin, data)
 
         provider = sociallogin.account.provider
 
-        if provider == 'google':
+        if provider == "google":
+            user.first_name = data.get("given_name", "")
+            user.last_name = data.get("family_name", "")
 
-            user.first_name = data.get('given_name', '')
-            user.last_name = data.get('family_name', '')
-
-        elif provider == 'facebook':
-            user.first_name = data.get('first_name', '')
-            user.last_name = data.get('last_name', '')
+        elif provider == "facebook":
+            user.first_name = data.get("first_name", "")
+            user.last_name = data.get("last_name", "")
 
         return user
-
 
     def save_user(self, request, sociallogin, form=None):
         user = super().save_user(request, sociallogin, form)
@@ -87,24 +88,24 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
         if not user.display_name:
             provider = sociallogin.account.provider
             extra_data = sociallogin.account.extra_data
-            if provider == 'google':
+            if provider == "google":
                 user.display_name = (
-                    sociallogin.account.extra_data.get('name') or
-                    f"{user.first_name} {user.last_name}".strip()
-                    or user.email.split('@')[0]
+                    sociallogin.account.extra_data.get("name")
+                    or f"{user.first_name} {user.last_name}".strip()
+                    or user.email.split("@")[0]
                 )
-            elif provider == 'facebook':
+            elif provider == "facebook":
                 user.display_name = (
-                    extra_data.get('name') or
-                    extra_data.get('short_name') or 
-                    f"{user.first_name} {user.last_name}".strip()
-                    or user.email.split('@')[0]
+                    extra_data.get("name")
+                    or extra_data.get("short_name")
+                    or f"{user.first_name} {user.last_name}".strip()
+                    or user.email.split("@")[0]
                 )
             if user.display_name:
-                user.save(update_fields=['display_name'])
+                user.save(update_fields=["display_name"])
 
         return user
-    
+
     def _enforce_social_2fa(self, request, user, provider):
         """Return a 202 challenge whenever a confirmed OTP device exists."""
 
@@ -127,9 +128,9 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
                 getattr(user, "pk", None),
                 provider,
             )
-            request.session['pending_social_login_user_id'] = user.pk
-            request.session['requires_2fa'] = True
-            request.session['social_provider'] = provider
+            request.session["pending_social_login_user_id"] = user.pk
+            request.session["requires_2fa"] = True
+            request.session["social_provider"] = provider
 
             raise ImmediateHttpResponse(
                 JsonResponse(
@@ -189,6 +190,3 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
                 raise
 
         return super().login(request, sociallogin)
-        
-
-        

@@ -1,27 +1,30 @@
 from rest_framework import serializers
 from .models import CustomUser, UserProfile
 from dj_rest_auth.registration.serializers import RegisterSerializer
-from dj_rest_auth.serializers import (
-    LoginSerializer,
-    UserDetailsSerializer
-)
+from dj_rest_auth.serializers import LoginSerializer, UserDetailsSerializer
 from phonenumber_field.serializerfields import PhoneNumberField
 from allauth.account.models import EmailAddress, EmailConfirmationHMAC
 from allauth.socialaccount.models import SocialAccount, SocialApp
 from django.db import transaction
 from django.utils.translation import gettext_lazy as _
 from .utils import build_absolute_url, get_social_avatar, resolve_display_name
+
+
 #  Custom User details serializer
 class CustomUserDetailsSerializer(serializers.ModelSerializer):
     """
     Extended user details with custom fields
     """
+
     profile_picture = serializers.SerializerMethodField()
     social_accounts = serializers.SerializerMethodField()
     has_2fa = serializers.SerializerMethodField()
     date_of_birth = serializers.SerializerMethodField()
     display_name = serializers.SerializerMethodField()
-    phone_verified = serializers.BooleanField(source="phone_number_verified", read_only=True)
+    phone_verified = serializers.BooleanField(
+        source="phone_number_verified", read_only=True
+    )
+
     class Meta:
         model = CustomUser
         fields = (
@@ -36,44 +39,45 @@ class CustomUserDetailsSerializer(serializers.ModelSerializer):
             "date_of_birth",
             "profile_picture",
             "social_accounts",
-            "has_2fa"
-            )
-        read_only_fields = ("email","social_accounts", "has_2fa", "phone_verified")
+            "has_2fa",
+        )
+        read_only_fields = ("email", "social_accounts", "has_2fa", "phone_verified")
 
     def get_profile_picture(self, obj):
         """Get profile picture url"""
         profile = getattr(obj, "profile", None)
         if profile and profile.profile_picture:
-              return build_absolute_url(self.context.get("request"), profile.profile_picture.url)
+            return build_absolute_url(
+                self.context.get("request"), profile.profile_picture.url
+            )
 
         url = get_social_avatar(obj)
         if url:
             return build_absolute_url(self.context.get("request"), url)
         return None
-    
+
     def get_date_of_birth(self, obj):
         profile = getattr(obj, "profile", None)
         return profile.date_of_birth if profile else None
-    
+
     def get_social_accounts(self, obj):
         """Conected social accounts"""
         account = SocialAccount.objects.filter(user=obj)
-        return[
-            {
-                "provider": acc.provider,
-                "uid": acc.uid,
-                "date_joined": acc.date_joined
-            }
+        return [
+            {"provider": acc.provider, "uid": acc.uid, "date_joined": acc.date_joined}
             for acc in account
         ]
-    
+
     def get_has_2fa(self, obj):
         """Check if user has 2FA"""
         from django_otp import user_has_device
+
         return user_has_device(obj)
 
     def get_display_name(self, obj):
         return resolve_display_name(obj, persist=True)
+
+
 # Custom Registration serializer
 
 
@@ -81,8 +85,10 @@ class CustomRegisterSerializer(RegisterSerializer):
     """
     Custom registeration with display_name and email verification
     """
+
     display_name = serializers.CharField(max_length=50, required=False)
     phone_number = PhoneNumberField(required=True)
+
     class Meta:
         model = CustomUser
         fields = [
@@ -91,9 +97,9 @@ class CustomRegisterSerializer(RegisterSerializer):
             "phone_number",
             "password1",
             "password2",
-            "display_name"
+            "display_name",
         ]
-    
+
     def validate_email(self, value):
         value = value.lower().strip()
         if CustomUser.objects.filter(email__iexact=value).exists():
@@ -102,37 +108,41 @@ class CustomRegisterSerializer(RegisterSerializer):
                 "Please use a different email or try logging in."
             )
         return value
-    
+
     def validate_phone_number(self, value):
         if not value:
-            raise serializers.ValidationError({
-                "phone_number": "This field is required"
-            })
+            raise serializers.ValidationError(
+                {"phone_number": "This field is required"}
+            )
         if CustomUser.objects.filter(phone_number=value).exists():
             raise serializers.ValidationError(
                 "A user with this Phone number already exists"
             )
         return value
+
     def validate_username(self, value):
         if CustomUser.objects.filter(username__iexact=value).exists():
             raise serializers.ValidationError(
                 "This username is already taken. Please choose a different username."
             )
-        
+
         if len(value) < 3:
-            raise serializers.ValidationError("Username must be more than 3 characters long.")
-        
-        if not value.replace("_", "").replace("-","").isalnum():
+            raise serializers.ValidationError(
+                "Username must be more than 3 characters long."
+            )
+
+        if not value.replace("_", "").replace("-", "").isalnum():
             raise serializers.ValidationError(
                 "Username can only contain letters, numbers, underscores and hyphens"
             )
         return value
+
     def get_cleaned_data(self):
         data = super().get_cleaned_data()
         data["display_name"] = self.validated_data.get("display_name", "")
         data["phone_number"] = self.validated_data.get("phone_number", "")
         return data
-    
+
     def save(self, request):
         """
         Save the user with custom fields.
@@ -145,17 +155,13 @@ class CustomRegisterSerializer(RegisterSerializer):
         user.save()
         # Send verification email
         email_address, _ = EmailAddress.objects.get_or_create(
-            user=user,
-            email = user.email,
-            defaults={
-                "primary": True,
-                "verified": False
-            }
+            user=user, email=user.email, defaults={"primary": True, "verified": False}
         )
         confirmation = EmailConfirmationHMAC(email_address)
         confirmation.send(request)
         return user
-    
+
+
 class CustomLoginSerializer(LoginSerializer):
     """
     Login with email verification and 2FA check
@@ -190,16 +196,20 @@ class CustomLoginSerializer(LoginSerializer):
         try:
             email_address = EmailAddress.objects.get(user=user, email=user.email)
             if not email_address.verified:
-                raise serializers.ValidationError({
-                    "detail": "Please verify your email before logging in",
-                    "verification_required": True
-                })  
+                raise serializers.ValidationError(
+                    {
+                        "detail": "Please verify your email before logging in",
+                        "verification_required": True,
+                    }
+                )
         except EmailAddress.DoesNotExist:
-            # If No EmailAdresss email not verified 
-            raise serializers.ValidationError({
+            # If No EmailAdresss email not verified
+            raise serializers.ValidationError(
+                {
                     "detail": "Please verify your email before logging in",
-                    "verification_required": True
-                }) 
+                    "verification_required": True,
+                }
+            )
         # Acticate user if ot active
         if not user.is_active:
             user.is_active = True
@@ -207,26 +217,38 @@ class CustomLoginSerializer(LoginSerializer):
 
         # Check if user has enabled 2FA
         from django_otp import user_has_device
+
         if user_has_device(user):
             from rest_framework.exceptions import ValidationError as DRFValidationError
-            error = DRFValidationError({
-                "detail": "2FA verification required",
-                "requires_2fa": True,
-                "user_id": user.id
-            })
+
+            error = DRFValidationError(
+                {
+                    "detail": "2FA verification required",
+                    "requires_2fa": True,
+                    "user_id": user.id,
+                }
+            )
             error.status_code = 202
             raise error
 
         attrs["user"] = user
-        return attrs  
-        
+        return attrs
+
 
 class UserBasicSerializer(serializers.ModelSerializer):
     display_name = serializers.SerializerMethodField()
 
     class Meta:
         model = CustomUser
-        fields = ["id", "username", "display_name", "email", "phone_number", "first_name", "last_name"]
+        fields = [
+            "id",
+            "username",
+            "display_name",
+            "email",
+            "phone_number",
+            "first_name",
+            "last_name",
+        ]
         read_only_fields = ["id", "username", "email"]
 
     def get_display_name(self, obj):
@@ -293,10 +315,10 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
         profile_picture = data.get("profile_picture")
         if profile_picture:
-              data["profile_picture"] = build_absolute_url(request, profile_picture)
+            data["profile_picture"] = build_absolute_url(request, profile_picture)
         else:
-              avatar = get_social_avatar(instance.user)
-              data["profile_picture"] = build_absolute_url(request, avatar)
+            avatar = get_social_avatar(instance.user)
+            data["profile_picture"] = build_absolute_url(request, avatar)
 
         return data
 
@@ -313,10 +335,10 @@ class EmailChangeSerializer(serializers.Serializer):
         """
 
         user = self.context["request"].user
-        # Check if it"s same as currenet email 
+        # Check if it"s same as currenet email
         if value.lower() == user.email.lower():
             raise serializers.ValidationError("This is your current email address")
-        
+
         # Check if email exist in CustomUser
         if CustomUser.objects.filter(email__iexact=value).exists():
             raise serializers.ValidationError("This email is already in use.")
@@ -332,12 +354,13 @@ class EmailChangeSerializer(serializers.Serializer):
         if not user.check_password(attrs["password"]):
             raise serializers.ValidationError({"password": "Incorrect password"})
         return attrs
-    
+
 
 class ResendVerificationEmailSerializer(serializers.Serializer):
     """
     Resend verificatioin email
     """
+
     email = serializers.EmailField(required=True)
 
     def validate_email(self, value):
@@ -347,7 +370,9 @@ class ResendVerificationEmailSerializer(serializers.Serializer):
         user = self.context["request"].user
 
         if value.lower() != user.email.lower():
-            raise serializers.ValidationError("This email does not match your account email.")
+            raise serializers.ValidationError(
+                "This email does not match your account email."
+            )
 
         try:
             email_address = EmailAddress.objects.get(user=user, email__iexact=value)
@@ -357,7 +382,7 @@ class ResendVerificationEmailSerializer(serializers.Serializer):
             pass
 
         return value.lower()
-    
+
 
 class PhoneNumberSerializer(serializers.Serializer):
     """
@@ -371,27 +396,31 @@ class PhoneNumberSerializer(serializers.Serializer):
 
         phone_str = str(value)
         # Check if phonen is already verified
-        if CustomUser.objects.filter(
-            phone_number=phone_str,
-            phone_number_verified=True
-        ).exclude(pk=self.context["request"].user.pk).exists():
+        if (
+            CustomUser.objects.filter(
+                phone_number=phone_str, phone_number_verified=True
+            )
+            .exclude(pk=self.context["request"].user.pk)
+            .exists()
+        ):
             raise serializers.ValidationError(
                 _("This phone number is already verified"),
-                code="phone_already_verified"
+                code="phone_already_verified",
             )
-        
+
         return value
 
     def validate(self, attrs):
         request = self.context.get("request")
 
         if not request or not request.user.is_authenticated:
-            raise serializers.ValidationError(          
+            raise serializers.ValidationError(
                 _("Authentication required to verify phone number"),
-                code="authentication_required"
+                code="authentication_required",
             )
         return attrs
-    
+
+
 class PhoneVerificationSerializer(serializers.Serializer):
     """
     Serializer for verifying phone number with OTP
@@ -403,7 +432,7 @@ class PhoneVerificationSerializer(serializers.Serializer):
     code = serializers.CharField(
         min_length=6,
         max_length=6,
-        help_text=_("6-digit verification code sent via SMS")
+        help_text=_("6-digit verification code sent via SMS"),
     )
 
     def validate_code(self, value):
@@ -411,51 +440,57 @@ class PhoneVerificationSerializer(serializers.Serializer):
         if not value.isdigit():
             raise serializers.ValidationError(
                 _("Verification code must contain only digits."),
-                code="invalid_code_fomar"
+                code="invalid_code_fomar",
             )
         if len(value) != 6:
             raise serializers.ValidationError(
                 _("Verifciation code must be exactly 6 digits."),
-                code="invalid_code_length"
+                code="invalid_code_length",
             )
-        
+
         return value
-    
+
     def validate(self, attrs):
         """Additoinal validation"""
         request = self.context.get("request")
         if not request or not request.user.is_authenticated:
             raise serializers.ValidationError(
                 _("Authentication required to verify phone number."),
-                code="authentication_required"
+                code="authentication_required",
             )
         return attrs
-    
+
+
 class PhoneNumberUpdateSerializer(serializers.Serializer):
     """
     Serializer for updating user"s phone number.
     """
+
     phone_number = PhoneNumberField(
         required=False,
         allow_blank=True,
-        help_text=_("New phonr number (Leave blank to remove)")
+        help_text=_("New phonr number (Leave blank to remove)"),
     )
+
     def validate_phone_number(self, value):
         """validate phone number"""
 
         phone_str = str(value)
         # Check if phonen is already verified
-        if CustomUser.objects.filter(
-            phone_number=phone_str,
-            phone_number_verified=True
-        ).exclude(pk=self.context["request"].user.pk).exists():
+        if (
+            CustomUser.objects.filter(
+                phone_number=phone_str, phone_number_verified=True
+            )
+            .exclude(pk=self.context["request"].user.pk)
+            .exists()
+        ):
             raise serializers.ValidationError(
                 _("This phone number is already verified"),
-                code="phone_already_verified"
+                code="phone_already_verified",
             )
-        
+
         return value
-    
+
     def update(self, instance, validated_data):
         """
         Update phone number and reset verification status

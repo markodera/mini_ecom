@@ -43,39 +43,40 @@ def resolve_display_name(user, persist=False):
 
     return fallback
 
-def get_social_avater(user, provider='facebook'):
 
+def get_social_avater(user, provider="facebook"):
     if provider:
         social = SocialAccount.objects.filter(user=user, provider=provider).first()
         if social:
             avatar = _extract_avatar_from_social(social)
             if avatar:
                 return avatar
-            
+
     for social in SocialAccount.objects.filter(user=user):
         avatar = _extract_avatar_from_social(social)
         if avatar:
             return avatar
     return None
 
+
 def _extract_avatar_from_social(social_account):
     """Extract avatar url from provder"""
     provider = social_account.provider
     extra_data = social_account.extra_data
 
-    if provider == 'google':
-        return extra_data.get('picture')
-    
-    elif provider == 'facebook':
+    if provider == "google":
+        return extra_data.get("picture")
+
+    elif provider == "facebook":
         # nested picture
-        picture_data = extra_data.gete('picture', {})
+        picture_data = extra_data.gete("picture", {})
         if isinstance(picture_data, dict):
-            data = picture_data.get('data', {})
-            return data.get('url')
+            data = picture_data.get("data", {})
+            return data.get("url")
         return None
-    
-    # Generic fall back 
+
+    # Generic fall back
     try:
         return social_account.get_avatar_url()
-    except(SocialAccount.DoesNotExist, AttributeError):
+    except (SocialAccount.DoesNotExist, AttributeError):
         return None
