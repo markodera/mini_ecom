@@ -1,0 +1,48 @@
+services: 
+  redis:
+    image: redis:7-alpine
+    container_name: mini-ecom-redis
+    ports:
+      - "6379:6379"  # Fixed indentation
+    volumes:
+      - redis_data:/data  # Fixed indentation
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]  # Fixed: Added space after comma
+      interval: 10s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
+    networks:
+      - mini-ecom-network  # Fixed typo: min-ecom-network → mini-ecom-network
+
+  redis-gui:
+    image: rediscommander/redis-commander:latest  # Fixed typo: lastest → latest
+    container_name: mini-ecom-redis-gui
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+      - HTTP_USER=admin
+      - HTTP_PASSWORD=${REDIS_GUI_PASSWORD:-admin123}
+    ports:
+      - "8081:8081"
+    depends_on:
+      redis:
+        condition: service_healthy
+    profiles:
+      - debug  # Fixed: Added space after hyphen (must be array format)
+    networks:
+      - mini-ecom-network
+
+volumes:
+  redis_data:
+    driver: local
+
+networks:
+  mini-ecom-network:  # Fixed typo: mini=ecom-network → mini-ecom-network
+    driver: bridge

@@ -7,48 +7,80 @@ from rest_framework import status
 from rest_framework.test import APIRequestFactory
 
 from allauth.socialaccount.models import SocialAccount
+from allauth.core.exceptions import ImmediateHttpResponse
 
 from .adapters import CustomSocialAccountAdapter
 from .models import CustomUser, UserProfile
 from .serializers import UserProfileSerializer, CustomUserDetailsSerializer
 from .views import GoogleLogin
+from django_otp.plugins.otp_totp.models import TOTPDevice
 
 
 class CustomSocialAccountAdapterTests(TestCase):
-	def setUp(self):
-		self.adapter = CustomSocialAccountAdapter()
-		self.factory = RequestFactory()
-		self.request = self.factory.post("/api/auth/google/")
+    def setUp(self):
+        self.adapter = CustomSocialAccountAdapter()
+        self.factory = RequestFactory()
+        self.request = self.factory.post("/api/auth/google/")
 
-	@staticmethod
-	def _build_sociallogin(provider="google", extra_data=None):
-		account = SimpleNamespace(provider=provider, extra_data=extra_data or {})
-		return SimpleNamespace(account=account)
+    @staticmethod
+    def _attach_session(request):
+        middleware = SessionMiddleware(lambda r: None)
+        middleware.process_request(request)
+        request.session.save()
+        return request
 
-	def test_save_user_sets_display_name_for_google(self):
-		"""Exercising CustomSocialAccountAdapter.save_user for Google."""
+    @staticmethod
+    def _build_sociallogin(provider="google", extra_data=None):
+        account = SimpleNamespace(provider=provider, extra_data=extra_data or {})
+        return SimpleNamespace(account=account)
 
-		user = CustomUser.objects.create_user(
-			username="mark",
-			email="mark@example.com",
-			password="pass12345",
-		)
-		user.display_name = ""
-		user.save(update_fields=["display_name"])
+    def test_save_user_sets_display_name_for_google(self):
+        """Exercising CustomSocialAccountAdapter.save_user for Google."""
 
-		sociallogin = self._build_sociallogin("google", {"name": "Mark G"})
+        user = CustomUser.objects.create_user(
+            username="mark",
+            email="mark@example.com",
+            password="pass12345",
+        )
+        user.display_name = ""
+        user.save(update_fields=["display_name"])
 
-		with patch(
-			"accounts.adapters.DefaultSocialAccountAdapter.save_user",
-			return_value=user,
-		):
-			updated_user = self.adapter.save_user(self.request, sociallogin)
+        sociallogin = self._build_sociallogin("google", {"name": "Mark G"})
 
-		self.assertEqual(
-			updated_user.display_name,
-			"Mark G",
-			"Google OAuth should populate display_name via save_user",
-		)
+        with patch(
+            "accounts.adapters.DefaultSocialAccountAdapter.save_user",
+            return_value=user,
+        ):
+            updated_user = self.adapter.save_user(self.request, sociallogin)
+
+        self.assertEqual(
+            updated_user.display_name,
+            "Mark G",
+            "Google OAuth should populate display_name via save_user",
+        )
+
+    def test_pre_social_login_blocks_when_device_exists_even_if_not_flagged_existing(self):
+        """Ensure we still raise 202 when the sociallogin object lacks the existing flag."""
+
+        user = CustomUser.objects.create_user(
+            username="2fa-social",
+            email="2fa-social@example.com",
+            password="pass12345",
+        )
+        TOTPDevice.objects.create(user=user, name="default", confirmed=True)
+
+        sociallogin = SimpleNamespace(
+            is_existing=False,
+            account=SimpleNamespace(user=user, provider="google"),
+        )
+
+        request = self._attach_session(self.factory.post("/api/auth/google/"))
+
+        with self.assertRaises(ImmediateHttpResponse) as ctx:
+            self.adapter.pre_social_login(request, sociallogin)
+
+        self.assertEqual(ctx.exception.response.status_code, status.HTTP_202_ACCEPTED)
+        self.assertTrue(request.session.get("requires_2fa"))
 
 
 class GoogleLogin2FATests(TestCase):
@@ -100,6 +132,33 @@ class GoogleLogin2FATests(TestCase):
             "Google login successful",
             "2FA flow should finish successfully when session matches.",
         )
+
+    def test_google_login_accepts_token_alias(self):
+        """2FA verification should succeed when client sends `token` instead of `otp_token`."""
+
+        request = self.factory.post(
+            "/api/auth/google/",
+            {
+                "otp_verified": True,
+                "user_id": self.user.id,
+                "token": "654321",
+            },
+            format="json",
+        )
+
+        request = self._attach_session(request)
+        request.session["pending_social_login_user_id"] = str(self.user.id)
+
+        view = GoogleLogin.as_view()
+
+        with patch("accounts.views.TOTPDevice.objects.get") as mock_totp_get:
+            mock_totp_get.return_value = SimpleNamespace(
+                verify_token=lambda token: True
+            )
+
+            response = view(request)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
 
 class UserProfileSerializerTests(TestCase):

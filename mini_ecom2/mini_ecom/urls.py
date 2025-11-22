@@ -19,7 +19,7 @@ from django.urls import path, include, re_path
 from rest_framework.authtoken import views
 from django.conf import settings
 from django.conf.urls.static import static
-from accounts.views import CustomLoginView, GoogleLogin
+from accounts.views import CustomLoginView, GoogleLogin, FacebookLogin
 urlpatterns = [
     path("admin/", admin.site.urls),
 
@@ -32,6 +32,9 @@ urlpatterns = [
     
     # Google Login
     path("api/auth/google/", GoogleLogin.as_view(), name="google-login"),
+
+    # Facebook login
+    path("api/auth/facebook/", FacebookLogin.as_view(), name="facebook-login"),
     path("api/accounts/", include("accounts.urls")),
 ] + (
     static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

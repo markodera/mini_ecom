@@ -108,8 +108,13 @@ WSGI_APPLICATION = "mini_ecom.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.getenv('NAME'),
+        "USER": os.getenv('USER'),
+        "PASSWORD": os.getenv('PASSWORD'),
+        "HOST": os.getenv('HOST'),
+        "PORT": os.getenv('PORT', 5432)
+
     }
 }
 
@@ -173,11 +178,7 @@ REST_FRAMEWORK = {
         "rest_framework.permissions.IsAuthenticated",
     ],
     "DEFAULT_THROTTLE_RATES": {
-        "signup": "10/day",  # 10 signups per day per IP
-        "login": "5/minute",  # 5 login attempts per minute per IP
-        "password_reset": "5/hour",  # 5 password reset requests per hour per IP
-        "anon": "100/day",  # General anonymous requests
-        "user": "1000/day",  # Authenticated user requests
+      
     },
 }
 
@@ -235,8 +236,24 @@ REST_AUTH = {
     'LOGOUT_ON_PASSWORD_CHANGE': False,     
 
     'SESSION_LOGIN': False,
-    'REGISTER_PERMISSION_CLASSES': ('rest_framework.permissions.AllowAny',),  
+    'REGISTER_PERMISSION_CLASSES': ('rest_framework.permissions.AllowAny',)
+}
 
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+        },
+    },
+    "loggers": {
+        "accounts.adapters": {
+            "handlers": ["console"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+    },
 }
 
 # Allauth settings
@@ -296,7 +313,79 @@ SOCIALACCOUNT_PROVIDERS = {
         'AUTH_PARAMS': {
             'access_type': 'offline',
         },
+    },
+    'facebook': {
+        'METHOD': 'oauth2',
+        'SCOPE': ['email', 'public_profile'],
+        'AUTH_PARAMS': {'auth_type': 'rerequest'},
+        'INIT_PARAMS': {'cookie': True},
+        'FIELDS': [
+            'id',
+            'email',
+            'first_name',
+            'last_name',
+            'middle_name',
+            'name',
+            'name_format',
+            'picture',
+            'short_name',
+        ],
+        'EXCHANGE_TOKEN': True,
+        'VERIFIED_EMAIL': False,
+        'VERSION': 'v24.0'
     }
 }
 SOCIALACCOUNT_GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
 SOCIALACCOUNT_GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET')
+SOCIALACCOUNT_FACEBOOK_CLIENT_ID = os.getenv('FACEBOOK_CLIENT_ID')
+SOCIALACCOUNT_FACEBOOK_CLIENT_SECRET = os.getenv('FACEBOOK_CLIENT_SECRET')
+
+TWILIO_ACCOUNT_SID= os.getenv('TWILIO_ACCOUNT_SID')
+TWILIO_AUTH_TOKEN= os.getenv('TWILIO_AUTH_TOKEN')
+TWILIO_PHONE_NUMBER= os.getenv('TWILIO_PHONE_NUMBER')
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/1",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            # "PARSER_CLASS": "redis.connection.HiredisParser",
+            "CONNECTION_POOL_KWARGS": {"max_connections": 50,
+            "retry_on_timeout": True
+            },
+            "SOCKET_CONNECT_TIMEOUT": 5,
+            "SOCKET_TIMEOUT": 5,
+            "COMPRESSOR": "django_redis.compressors.zlib.ZlibCompressor",
+            "IGNORE_EXCEPTIONS": True
+        },
+        "KEY_PREFIX": "mini_ecom",
+        "TIMEOUT": 300,
+    },
+    "sessions":{
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/2",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        },
+        "KEY_PREFIX": "session",
+
+    }
+}
+
+SESSION_ENGINE = "django.contrib.sessions.backends.cached_db" 
+SESSION_CACHE_ALIAS="sessions"
+SESSION_COOKIE_AGE = 1209600
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SECURE = not DEBUG
+SESSION_COOKIE_SAMESITE = 'Lax'
+
+PHONE_VERIFICATION = {
+    'CODE_LENGTH': 6,
+    'CODE_EXPIRY_MINUTES': 10,
+    'MAX_ATTEMPTS': 5,
+    'RATE_LIMIT_CODES_PER_HOUR': 3,
+    'RATE_LIMIT_VERIFICATIONS_PER_MINUTE': 5,
+    'USE_REDIS': True,
+    'REDIS_KEY_PREFIX': 'phone_verify'
+}
