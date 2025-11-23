@@ -12,7 +12,7 @@
 ## 1. Discovery Phase: Understanding the Bug
 
 ### 1.1 Initial Symptom
-User reported that logging in via Google OAuth immediately returned HTTP 200 with access/refresh tokens, completely bypassing the 2FA prompt despite the account having an active, confirmed `TOTPDevice`.
+Logging in via Google and Facebook OAuth immediately returned HTTP 200 with access/refresh tokens, completely bypassing the 2FA prompt despite the account having an active, confirmed `TOTPDevice`.
 
 ### 1.2 Diagnostic Steps Taken
 
@@ -35,7 +35,7 @@ logger.debug(f"Session before enforcement: {dict(request.session.items())}")
 **Finding**: Session contained no `requires_2fa` or `pending_social_login_user_id` keys after the social login completed, even though we expected the adapter to set them.
 
 #### Step 3: Trace the Flow
-- Google OAuth callback hits `/api/auth/google/` (POST with `access_token` or `code`)
+- Google and Facebook OAuth callback hits `/api/auth/google/` and `/api/auth/facebook/` (POST with `access_token` or `code`)
 - `dj_rest_auth.registration.views.SocialLoginView` processes the request
 - Allauth's `complete_social_login` runs, which calls adapter hooks
 - `CustomSocialAccountAdapter.pre_social_login` is invoked
@@ -58,9 +58,9 @@ The adapter could *raise* a 202 response via `ImmediateHttpResponse`, but if the
 ## 2. Architecture: How Allauth Social Login Works
 
 ### 2.1 Normal Flow (No 2FA)
-1. **Client** → POST `/api/auth/google/` with `{"access_token": "..."}` or `{"code": "..."}`
+1. **Client** → POST `/api/auth/google/` or `/api/auth/facebook/` with `{"access_token": "..."}` or `{"code": "..."}`
 2. **SocialLoginView.post()**:
-   - Validates the token/code with Google's userinfo endpoint
+   - Validates the token/code with Facebook or Google's userinfo endpoint
    - Finds or creates a `SocialAccount` linked to a Django `User`
    - Calls `complete_social_login(request, sociallogin)`
 3. **Allauth adapter hooks**:
@@ -75,7 +75,7 @@ The adapter could *raise* a 202 response via `ImmediateHttpResponse`, but if the
    - Raises `ImmediateHttpResponse` with 202 status
    - Sets session keys: `pending_social_login_user_id`, `requires_2fa`, `social_provider`
 3. **View catches exception**, returns 202 response to client with challenge payload
-4. **Client** → POST `/api/auth/google/` again with `{"otp_verified": true, "user_id": 14, "token": "123456"}`
+4. **Client** → POST `/api/auth/google/` or `/api/auth/facebook/` again with `{"otp_verified": true, "user_id": 14, "token": "123456"}`
 5. **View recognizes OTP verification request**, validates token, completes login, returns 200 with tokens
 
 ### 2.3 What Was Broken
