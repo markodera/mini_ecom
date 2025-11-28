@@ -23,17 +23,25 @@ from accounts.views import CustomLoginView, GoogleLogin, FacebookLogin
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    
     # dj-rest-auth endpoints
     path("api/auth/login/", CustomLoginView.as_view(), name="login"),
     path("api/auth/", include("dj_rest_auth.urls")),
     path("api/auth/register/", include("dj_rest_auth.registration.urls")),
     path("api/auth/social/", include("allauth.socialaccount.urls")),
     path("accounts/", include("allauth.urls")),
+
     # Google Login
     path("api/auth/google/", GoogleLogin.as_view(), name="google-login"),
+
     # Facebook login
     path("api/auth/facebook/", FacebookLogin.as_view(), name="facebook-login"),
+
+    # Accounts app
     path("api/accounts/", include("accounts.urls")),
+    # Products
+
+    path("api/", include("products.urls"))
 ] + (
     static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     if settings.DEBUG
