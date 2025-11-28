@@ -43,7 +43,7 @@ INSTALLED_APPS = [
     # Third party apps
     "rest_framework",
     "rest_framework_simplejwt.token_blacklist",
-    
+    "phonenumber_field",
     # Authentication apps
     "dj_rest_auth",
     "dj_rest_auth.registration",
@@ -59,10 +59,11 @@ INSTALLED_APPS = [
     "django_otp.plugins.otp_static",
     # Filters
     "django_filters",
+
     # Apps
     "accounts",
-    "phonenumber_field",
     "products",
+    "cart",
 ]
 
 MIDDLEWARE = [
