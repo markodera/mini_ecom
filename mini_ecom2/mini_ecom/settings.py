@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     # Third party apps
     "rest_framework",
     "rest_framework_simplejwt.token_blacklist",
+    
     # Authentication apps
     "dj_rest_auth",
     "dj_rest_auth.registration",
@@ -56,9 +57,12 @@ INSTALLED_APPS = [
     "django_otp",
     "django_otp.plugins.otp_totp",
     "django_otp.plugins.otp_static",
+    # Filters
+    "django_filters",
     # Apps
     "accounts",
     "phonenumber_field",
+    "products",
 ]
 
 MIDDLEWARE = [
@@ -168,6 +172,11 @@ REST_FRAMEWORK = {
         "rest_framework.permissions.IsAuthenticated",
     ],
     "DEFAULT_THROTTLE_RATES": {},
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
+        'rest_framework.filters.SearchFilter',
+        'rest_framework.filters.OrderingFilter',
+    ]
 }
 
 

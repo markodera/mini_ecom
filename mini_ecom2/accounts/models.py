@@ -44,7 +44,7 @@ class UserProfile(models.Model):
     )
     bio = models.TextField(blank=True, null=True)
     profile_picture = models.ImageField(
-        upload_to="profile_picture/", blank=True, null=True
+        upload_to="profile_picture/%Y/%m/", blank=True, null=True
     )
     gender = models.CharField(max_length=20, choices=GENDER, blank=True, null=True)
     date_of_birth = models.DateField(
