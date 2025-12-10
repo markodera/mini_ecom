@@ -21,6 +21,8 @@ class CategoryViewSet(ReadOnlyModelViewSet):
     queryset = Category.objects.filter(is_active=True)
     serializer_class = CategorySerializer
     lookup_field = 'slug'
+
+    search_fields = ["name","slug"]
     permission_classes = [AllowAny]
 
 
