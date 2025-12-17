@@ -32,7 +32,8 @@ class CustomUserAdmin(BaseUserAdmin):
         "date_joined",
     ]
     list_display_links = ["email", "username"]
-    search_fields = ["username", "email", "first_name", "last_name", "phone_number"]
+    search_fields = ["username", "email",
+                     "first_name", "last_name", "phone_number"]
     ordering = ["-date_joined"]
     fieldsets = (
         (None, {"fields": ("username", "password")}),
@@ -79,6 +80,7 @@ class CustomUserAdmin(BaseUserAdmin):
         ),
     )
     inlines = [UserProfileInline]
+    list_per_page = 25
 
 
 @admin.register(UserProfile)
@@ -95,6 +97,7 @@ class CustomAdminProfile(admin.ModelAdmin):
     search_fields = ["user__username", "user__email", "bio"]
     readonly_fields = ["created_at", "updated_at", "profile_picture_preview"]
     ordering = ["-created_at"]
+    list_per_page = 25
 
     fieldsets = (
         ("User Info", {"fields": ("user",)}),

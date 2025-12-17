@@ -1,6 +1,8 @@
 import logging
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import status, serializers as drf_serializers
+from drf_spectacular.utils import extend_schema, inline_serializer
+from drf_spectacular.types import OpenApiTypes
 from .serializers import (
     UserProfileSerializer,
     EmailChangeSerializer,
@@ -59,14 +61,16 @@ class SocialLogin2FAMixin:
                 "Social login intercepted for provider=%s status=%s payload=%s",
                 getattr(self, "provider_name", "social"),
                 getattr(exc.response, "status_code", None),
-                getattr(exc.response, "content", b"").decode("utf-8", errors="ignore"),
+                getattr(exc.response, "content", b"").decode(
+                    "utf-8", errors="ignore"),
             )
             return exc.response
         except OAuth2Error as exc:
             # Provider token exchange failed or user info endpoint rejected the request
             provider = getattr(self, "provider_name", "social").title()
             return Response(
-                {"detail": f"{provider} token validation failed", "error": str(exc)},
+                {"detail": f"{provider} token validation failed",
+                    "error": str(exc)},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -76,7 +80,8 @@ class SocialLogin2FAMixin:
             from django.contrib.auth import logout
 
             user_id = request.session.get("pending_social_login_user_id")
-            provider = request.session.get("social_provider", self.provider_name)
+            provider = request.session.get(
+                "social_provider", self.provider_name)
 
             self.logger.debug(
                 "Social login response converted to 202 (user=%s provider=%s)",
@@ -100,7 +105,8 @@ class SocialLogin2FAMixin:
             try:
                 request.session.save()
             except Exception:
-                self.logger.debug("Social login session save skipped", exc_info=True)
+                self.logger.debug(
+                    "Social login session save skipped", exc_info=True)
 
             challenge_payload = {
                 "detail": "2FA verification required",
@@ -178,7 +184,8 @@ class SocialLogin2FAMixin:
         request.session.pop("requires_2fa", None)
 
         refresh = RefreshToken.for_user(user)
-        serializer = CustomUserDetailsSerializer(user, context={"request": request})
+        serializer = CustomUserDetailsSerializer(
+            user, context={"request": request})
 
         response_data = {
             "detail": f"{provider.title()} login successful",
@@ -197,10 +204,12 @@ class SocialLogin2FAMixin:
         from datetime import datetime, timezone
 
         access_token_expiration = (
-            datetime.now(timezone.utc) + settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"]
+            datetime.now(timezone.utc) +
+            settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"]
         )
         refresh_token_expiration = (
-            datetime.now(timezone.utc) + settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"]
+            datetime.now(timezone.utc) +
+            settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"]
         )
 
         response.set_cookie(
@@ -338,10 +347,12 @@ class CustomLoginView(DjRestAuthLoginView):
 
         # Use the configured lifetimes to mirror SIMPLE_JWT settings for cookies
         access_token_expiration = (
-            datetime.now(timezone.utc) + settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"]
+            datetime.now(timezone.utc) +
+            settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"]
         )
         refresh_token_expiration = (
-            datetime.now(timezone.utc) + settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"]
+            datetime.now(timezone.utc) +
+            settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"]
         )
 
         # Store each token in the dedicated cookie expected by dj-rest-auth
@@ -371,16 +382,23 @@ class ProfileView(RetrieveUpdateAPIView):
     parser_classes = [JSONParser, FormParser, MultiPartParser]
 
     def get_object(self):
-        profile, created = UserProfile.objects.get_or_create(user=self.request.user)
+        profile, created = UserProfile.objects.get_or_create(
+            user=self.request.user)
         return profile
 
 
 class ChangeEmailView(APIView):
-
     """Change user's email address"""
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        summary="Change Email Address",
+        description="Change user's email address. A verification email will be sent to the new address.",
+        tags=['accounts'],
+        request=EmailChangeSerializer,
+        responses={200: inline_serializer(name='ChangeEmailResponse', fields={'detail': drf_serializers.CharField()})}
+    )
     def post(self, request):
         serializer = EmailChangeSerializer(
             data=request.data, context={"request": request}
@@ -486,10 +504,29 @@ class ResendVerificationEmailView(APIView):
 
 
 class TwoFactorSetupView(APIView):
-    """Generate QR code or 2Fa setup"""
+    """Generate QR code for 2FA setup"""
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        summary="Setup 2FA - Get QR Code",
+        description="Generates a QR code for setting up 2FA with an authenticator app.",
+        tags=['accounts'],
+        responses={
+            200: inline_serializer(
+                name='TwoFactorSetupResponse',
+                fields={
+                    'qr_code': drf_serializers.CharField(),
+                    'secret': drf_serializers.CharField(),
+                    'device_id': drf_serializers.IntegerField(),
+                }
+            ),
+            400: inline_serializer(
+                name='TwoFactorAlreadyEnabled',
+                fields={'detail': drf_serializers.CharField()}
+            ),
+        }
+    )
     def get(self, request):
         user = request.user
 
@@ -497,7 +534,8 @@ class TwoFactorSetupView(APIView):
             return Response(
                 {"detail": "2FA is already enabled"}, status=status.HTTP_400_BAD_REQUEST
             )
-        device = TOTPDevice.objects.create(user=user, name="default", confirmed=False)
+        device = TOTPDevice.objects.create(
+            user=user, name="default", confirmed=False)
 
         url = device.config_url
 
@@ -524,6 +562,27 @@ class TwoFactorVerifySetupView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        summary="Verify 2FA Setup",
+        description="Verify the 6-digit code from authenticator app to complete 2FA setup.",
+        tags=['accounts'],
+        request=inline_serializer(
+            name='TwoFactorVerifySetupRequest',
+            fields={
+                'token': drf_serializers.CharField(help_text='6-digit code from authenticator'),
+                'device_id': drf_serializers.IntegerField(help_text='Device ID from setup'),
+            }
+        ),
+        responses={
+            200: inline_serializer(
+                name='TwoFactorVerifySetupResponse',
+                fields={
+                    'detail': drf_serializers.CharField(),
+                    'backup_codes': drf_serializers.ListField(child=drf_serializers.CharField()),
+                }
+            ),
+        }
+    )
     def post(self, request):
         user = request.user
         token = request.data.get("token", "").strip().replace(" ", "")
@@ -539,7 +598,8 @@ class TwoFactorVerifySetupView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         try:
-            device = TOTPDevice.objects.get(id=device_id, user=user, confirmed=False)
+            device = TOTPDevice.objects.get(
+                id=device_id, user=user, confirmed=False)
         except TOTPDevice.DoesNotExist:
             return Response(
                 {"error": "Invalid device"}, status=status.HTTP_400_BAD_REQUEST
@@ -561,7 +621,8 @@ class TwoFactorVerifySetupView(APIView):
     def generate_backup_codes(self, user):
         from django_otp.plugins.otp_static.models import StaticDevice, StaticToken
 
-        device, created = StaticDevice.objects.get_or_create(user=user, name="backup")
+        device, created = StaticDevice.objects.get_or_create(
+            user=user, name="backup")
 
         device.token_set.all().delete()
 
@@ -574,10 +635,20 @@ class TwoFactorVerifySetupView(APIView):
 
 
 class TwoFactorVerifyView(APIView):
-    """ "Verify 2FA token during login"""
+    """Verify 2FA token during login"""
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        summary="Verify 2FA Token",
+        description="Verify 2FA token (6-digit TOTP or backup code) during login.",
+        tags=['accounts'],
+        request=inline_serializer(
+            name='TwoFactorVerifyRequest',
+            fields={'token': drf_serializers.CharField(help_text='6-digit code or backup code')}
+        ),
+        responses={200: inline_serializer(name='TwoFactorVerifyResponse', fields={'detail': drf_serializers.CharField()})}
+    )
     def post(self, request):
         user = request.user
         token_input = request.data.get("token", "")
@@ -629,6 +700,16 @@ class TwoFactorDisableView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        summary="Disable 2FA",
+        description="Disable two-factor authentication. Requires password confirmation.",
+        tags=['accounts'],
+        request=inline_serializer(
+            name='TwoFactorDisableRequest',
+            fields={'password': drf_serializers.CharField()}
+        ),
+        responses={200: inline_serializer(name='TwoFactorDisableResponse', fields={'detail': drf_serializers.CharField()})}
+    )
     def post(self, request):
         user = request.user
         password = request.data.get("password")
@@ -650,6 +731,20 @@ class TwoFactorVerifyStatusView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        summary="Get 2FA Status",
+        description="Check if the current user has 2FA enabled.",
+        tags=['accounts'],
+        responses={
+            200: inline_serializer(
+                name='TwoFactorStatusResponse',
+                fields={
+                    '2fa_enabled': drf_serializers.BooleanField(),
+                    'devices': drf_serializers.IntegerField(),
+                }
+            )
+        }
+    )
     def get(self, request):
         user = request.user
         has_2fa = user_has_device(user)
@@ -662,6 +757,13 @@ class TwoFactorVerifyStatusView(APIView):
         )
 
 
+@extend_schema(
+    summary="Send Phone Verification Code",
+    description="Send SMS verification code to user's phone number.",
+    tags=['accounts'],
+    request=PhoneNumberSerializer,
+    responses={200: inline_serializer(name='PhoneSendCodeResponse', fields={'detail': drf_serializers.CharField()})}
+)
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def send_verification_code(request):
@@ -679,10 +781,12 @@ def send_verification_code(request):
         429: Rate limit exceeded
         500: SMS sending falied
     """
-    serializer = PhoneNumberSerializer(data=request.data, context={"request": request})
+    serializer = PhoneNumberSerializer(
+        data=request.data, context={"request": request})
     if not serializer.is_valid():
         return Response(
-            {"detail": _("Invalid phone number."), "errors": serializer.errors},
+            {"detail": _("Invalid phone number."),
+             "errors": serializer.errors},
             status=status.HTTP_400_BAD_REQUEST,
         )
     phone_number = str(serializer.validated_data["phone_number"])
@@ -695,7 +799,8 @@ def send_verification_code(request):
         if request.user.phone_number != phone_number:
             request.user.phone_number = phone_number
             request.user.phone_number_verified = False
-            request.user.save(update_fields=["phone_number", "phone_number_verified"])
+            request.user.save(
+                update_fields=["phone_number", "phone_number_verified"])
 
             # Increment rate limit conter AFTER succesful send
             sms_service.increment_code_sent_count(phone_number)
@@ -732,6 +837,13 @@ def send_verification_code(request):
         return Response(response_data, status=status_code)
 
 
+@extend_schema(
+    summary="Verify Phone Number",
+    description="Verify phone number with the OTP code sent via SMS.",
+    tags=['accounts'],
+    request=PhoneVerificationSerializer,
+    responses={200: inline_serializer(name='PhoneVerifyResponse', fields={'detail': drf_serializers.CharField()})}
+)
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def verify_phone_number(request):
@@ -755,7 +867,8 @@ def verify_phone_number(request):
     )
     if not serializer.is_valid():
         return Response(
-            {"detail": _("Invalid verification data."), "errors": serializer.errors},
+            {"detail": _("Invalid verification data."),
+             "errors": serializer.errors},
             status=status.HTTP_400_BAD_REQUEST,
         )
     phone_number = str(serializer.validated_data["phone_number"])
@@ -800,6 +913,20 @@ def verify_phone_number(request):
     )
 
 
+@extend_schema(
+    summary="Get Phone Verification Status",
+    description="Get current phone verification status for the authenticated user.",
+    tags=['accounts'],
+    responses={
+        200: inline_serializer(
+            name='PhoneStatusResponse',
+            fields={
+                'phone_number': drf_serializers.CharField(allow_null=True),
+                'verified': drf_serializers.BooleanField(),
+            }
+        )
+    }
+)
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def phone_verification_status(request):
@@ -836,6 +963,13 @@ def phone_verification_status(request):
     )
 
 
+@extend_schema(
+    summary="Update Phone Number",
+    description="Update user's phone number. The new number will need to be verified.",
+    tags=['accounts'],
+    request=PhoneNumberUpdateSerializer,
+    responses={200: inline_serializer(name='PhoneUpdateResponse', fields={'detail': drf_serializers.CharField(), 'phone_number': drf_serializers.CharField(), 'verified': drf_serializers.BooleanField()})}
+)
 @api_view(["PUT", "PATCH"])
 @permission_classes([IsAuthenticated])
 def update_phone_number(request):
@@ -860,13 +994,15 @@ def update_phone_number(request):
     )
     if not serializer.is_valid():
         return Response(
-            {"detail": _("Invalid phone number."), "errors": serializer.errors},
+            {"detail": _("Invalid phone number."),
+             "errors": serializer.errors},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
     user = serializer.save()
 
-    logger.info(f"Phone number updated for user {user.id}", extra={"user_id": user.id})
+    logger.info(f"Phone number updated for user {user.id}", extra={
+                "user_id": user.id})
 
     return Response(
         {
@@ -878,6 +1014,12 @@ def update_phone_number(request):
     )
 
 
+@extend_schema(
+    summary="Remove Phone Number",
+    description="Remove user's phone number from their account.",
+    tags=['accounts'],
+    responses={200: inline_serializer(name='PhoneRemoveResponse', fields={'detail': drf_serializers.CharField()})}
+)
 @api_view(["DELETE"])
 @permission_classes([IsAuthenticated])
 def remove_phone_number(request):
@@ -897,7 +1039,8 @@ def remove_phone_number(request):
     user.phone_number_verified = False
     user.save(update_fields=["phone_number", "phone_number_verified"])
 
-    logger.info(f"Phone number removed for user {user.id}", extra={"user_id": user.id})
+    logger.info(f"Phone number removed for user {user.id}", extra={
+                "user_id": user.id})
 
     return Response(
         {"detail": _("Phone number removed successfully.")}, status=status.HTTP_200_OK

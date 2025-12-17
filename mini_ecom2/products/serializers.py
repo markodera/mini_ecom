@@ -1,5 +1,8 @@
 from rest_framework import serializers
+from drf_spectacular.utils import extend_schema_field
+from drf_spectacular.types import OpenApiTypes
 from .models import Category, Product, ProductImage
+
 
 class CategorySerializer(serializers.ModelSerializer):
     """
@@ -16,6 +19,7 @@ class CategorySerializer(serializers.ModelSerializer):
             'description'
         ]
 
+
 class ProductImageSerializer(serializers.ModelSerializer):
     """
     Serializer for product Images
@@ -30,6 +34,8 @@ class ProductImageSerializer(serializers.ModelSerializer):
             'alt_text',
             'is_featured'
         ]
+
+
 class ProductListSerializer(serializers.ModelSerializer):
     """
     Lightweight serilaizer for listing products.
@@ -42,12 +48,14 @@ class ProductListSerializer(serializers.ModelSerializer):
     main_image = serializers.SerializerMethodField()
     price = serializers.DecimalField(max_digits=10, decimal_places=2)
     discount_price = serializers.DecimalField(max_digits=10, decimal_places=2)
+    current_price = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    in_stock = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = Product
         fields = [
             'id',
-            'name', 
+            'name',
             'slug',
             'category_name',
             'category_slug',
@@ -59,10 +67,11 @@ class ProductListSerializer(serializers.ModelSerializer):
             'is_featured'
         ]
 
+    @extend_schema_field(OpenApiTypes.URI)
     def get_main_image(self, obj):
         """
         Effecicently fetches the main image.
-        
+
         Prefetch_related in the view will make this fast"""
         # Look for image marked is_featured=True
         # We use the pre-fetched 'images' list to avoid DB hits here
@@ -75,11 +84,12 @@ class ProductListSerializer(serializers.ModelSerializer):
             main_img = images[0]
 
         if main_img:
-            request =self.context.get('request')
+            request = self.context.get('request')
             if request:
                 return request.build_absolute_uri(main_img.image.url)
             return main_img.image.url
         return None
+
 
 class ProductDetailSerializer(serializers.ModelSerializer):
     """
@@ -89,6 +99,8 @@ class ProductDetailSerializer(serializers.ModelSerializer):
 
     category = CategorySerializer(read_only=True)
     images = ProductImageSerializer(many=True, read_only=True)
+    current_price = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    in_stock = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = Product

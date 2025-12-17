@@ -21,7 +21,8 @@ class SMSService:
     """
 
     def __init__(self):
-        self.client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
+        self.client = Client(settings.TWILIO_ACCOUNT_SID,
+                             settings.TWILIO_AUTH_TOKEN)
         self.from_number = settings.TWILIO_PHONE_NUMBER
         self.use_redis = settings.PHONE_VERIFICATION.get("USE_REDIS", False)
         self.redis_prefix = settings.PHONE_VERIFICATION.get(
@@ -75,7 +76,8 @@ class SMSService:
             return True, 0, "OK"
 
         except Exception as e:
-            logger.warning(f"Redis rate limit check failed: {e}. Falling back to DB.")
+            logger.warning(
+                f"Redis rate limit check failed: {e}. Falling back to DB.")
             return self._can_send_code_db(phone_number)
 
     def increment_code_sent_count(self, phone_number):
@@ -116,7 +118,8 @@ class SMSService:
 
             if oldest:
                 wait_until = oldest.created_at + timedelta(hours=1)
-                wait_seconds = int((wait_until - timezone.now()).total_seconds())
+                wait_seconds = int(
+                    (wait_until - timezone.now()).total_seconds())
                 return False, max(wait_seconds, 0), "Rate limit exceeded (DB)"
 
         return True, 0, "OK"
@@ -273,7 +276,8 @@ class SMSService:
                 to=str(phone_number),
             )
 
-            logger.info(f"SMS sent: {str(phone_number)[:8]}*** | SID: {message.sid}")
+            logger.info(
+                f"SMS sent: {str(phone_number)[:8]}*** | SID: {message.sid}")
             return True, message.sid
 
         except TwilioRestException as e:
@@ -308,7 +312,8 @@ def send_phone_verification(user, phone_number, sms_service: SMSService):
 
     # Generate and store code
     code = sms_service.generate_verification_code()
-    verification = sms_service.store_verification_code(phone_number, code, user.id)
+    verification = sms_service.store_verification_code(
+        phone_number, code, user.id)
 
     # Send SMS
     success, result = sms_service.send_verification_sms(phone_number, code)

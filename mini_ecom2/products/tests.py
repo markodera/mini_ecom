@@ -8,6 +8,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 
 User = get_user_model()
 
+
 class ProductAPITests(TestCase):
     def setUp(self):
         """
@@ -18,19 +19,21 @@ class ProductAPITests(TestCase):
 
         # 1. Create Users
         self.admin_user = User.objects.create_superuser(
-            username='admin', 
-            email='admin@example.com', 
+            username='admin',
+            email='admin@example.com',
             password='password123'
         )
         self.regular_user = User.objects.create_user(
-            username='user', 
-            email='user@example.com', 
+            username='user',
+            email='user@example.com',
             password='password123'
         )
 
         # 2. Create Categories (MPTT Structure)
-        self.electronics = Category.objects.create(name="Electronics", slug="electronics")
-        self.phones = Category.objects.create(name="Phones", slug="phones", parent=self.electronics)
+        self.electronics = Category.objects.create(
+            name="Electronics", slug="electronics")
+        self.phones = Category.objects.create(
+            name="Phones", slug="phones", parent=self.electronics)
 
         # 3. Create a Product
         self.product = Product.objects.create(
@@ -47,8 +50,9 @@ class ProductAPITests(TestCase):
         # 4. Create a Dummy Image
         # SimpleUploadedFile creates a file in memory for testing
         image_content = b'\x47\x49\x46\x38\x39\x61\x01\x00\x01\x00\x80\x00\x00\x05\x04\x04\x00\x00\x00\x2c\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02\x44\x01\x00\x3b'
-        self.image_file = SimpleUploadedFile("test_image.jpg", image_content, content_type="image/jpeg")
-        
+        self.image_file = SimpleUploadedFile(
+            "test_image.jpg", image_content, content_type="image/jpeg")
+
         ProductImage.objects.create(
             product=self.product,
             image=self.image_file,
@@ -57,7 +61,8 @@ class ProductAPITests(TestCase):
 
         # URLs
         self.list_url = reverse('products:product-list')
-        self.detail_url = reverse('products:product-detail', kwargs={'slug': self.product.slug})
+        self.detail_url = reverse(
+            'products:product-detail', kwargs={'slug': self.product.slug})
 
     # --- PUBLIC ACCESS TESTS ---
 
@@ -81,9 +86,9 @@ class ProductAPITests(TestCase):
     def test_admin_can_create_product(self):
         """Superusers should be able to create products."""
         self.client.force_authenticate(user=self.admin_user)
-        
+
         data = {
-            'category': self.phones.id, # Send ID for foreign key
+            'category': self.phones.id,  # Send ID for foreign key
             'name': 'Samsung S24',
             'slug': 'samsung-s24',
             'description': 'Android flagship',
@@ -92,7 +97,7 @@ class ProductAPITests(TestCase):
             'stock_quantity': 100,
             'is_active': True
         }
-        
+
         response = self.client.post(self.list_url, data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Product.objects.count(), 2)
@@ -100,10 +105,10 @@ class ProductAPITests(TestCase):
     def test_admin_can_update_product(self):
         """Superusers should be able to update products."""
         self.client.force_authenticate(user=self.admin_user)
-        
+
         data = {'price': 850.00, 'stock_quantity': 40}
         response = self.client.patch(self.detail_url, data)
-        
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.product.refresh_from_db()
         self.assertEqual(self.product.price, 850.00)
@@ -111,7 +116,7 @@ class ProductAPITests(TestCase):
     def test_admin_can_delete_product(self):
         """Superusers should be able to delete products."""
         self.client.force_authenticate(user=self.admin_user)
-        
+
         response = self.client.delete(self.detail_url)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertEqual(Product.objects.count(), 0)
@@ -121,7 +126,7 @@ class ProductAPITests(TestCase):
     def test_regular_user_cannot_create_product(self):
         """Authenticated regular users cannot create products."""
         self.client.force_authenticate(user=self.regular_user)
-        
+
         data = {'name': 'User Product', 'price': 10.00, 'sku': 'USER-1'}
         response = self.client.post(self.list_url, data)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
@@ -129,7 +134,7 @@ class ProductAPITests(TestCase):
     def test_regular_user_cannot_update_product(self):
         """Authenticated regular users cannot update products."""
         self.client.force_authenticate(user=self.regular_user)
-        
+
         data = {'price': 0.00}
         response = self.client.patch(self.detail_url, data)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
