@@ -23,7 +23,7 @@ load_dotenv()
 # Railway environment detection - check for DATABASE_URL which Railway always provides
 RAILWAY_ENVIRONMENT = os.getenv('RAILWAY_ENVIRONMENT')
 DATABASE_URL = os.getenv('DATABASE_URL')
-IS_PRODUCTION = RAILWAY_ENVIRONMENT == 'production' or DATABASE_URL is not None
+IS_PRODUCTION = bool(DATABASE_URL)
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -116,17 +116,14 @@ TEMPLATES = [
 WSGI_APPLICATION = "mini_ecom.wsgi.application"
 
 
-# Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-
 # Database configuration
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-if IS_PRODUCTION:
-    # Railway PostgreSQL configuration via DATABASE_URL
+if DATABASE_URL:
+    # Railway/Production PostgreSQL configuration via DATABASE_URL
     DATABASES = {
         "default": dj_database_url.config(
-            default=os.getenv('DATABASE_URL'),
+            default=DATABASE_URL,
             conn_max_age=600,
             conn_health_checks=True,
             ssl_require=True
