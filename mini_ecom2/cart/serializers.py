@@ -3,14 +3,16 @@ from .models import Cart, CartItem
 from products.serializers import ProductListSerializer
 from products.models import Product
 
+
 class CartItemSerializer(serializers.ModelSerializer):
     """
     Serializer for individual items.
     Include the full product details so the frontend can show images/name
     """
     product = ProductListSerializer(read_only=True)
-    product_id = serializers.IntegerField(write_only=True) # Use for adding to cart
-    sub_total =serializers.DecimalField(
+    product_id = serializers.IntegerField(
+        write_only=True)  # Use for adding to cart
+    sub_total = serializers.DecimalField(
         source='total_price',
         max_digits=10,
         decimal_places=2,
@@ -26,19 +28,22 @@ class CartItemSerializer(serializers.ModelSerializer):
             'quantity',
             'sub_total'
         ]
+
     def validate_product_id(self, value):
         """Ensure the product exists and is in stock"""
 
         try:
-            product= Product.objects.get(id=value)
+            product = Product.objects.get(id=value)
             if not product.is_active:
-                raise serializers.ValidationError("This product is not available.")
+                raise serializers.ValidationError(
+                    "This product is not available.")
             if not product.in_stock:
-                raise serializers.ValidationError("This product is out of stock")
+                raise serializers.ValidationError(
+                    "This product is out of stock")
             return value
         except Product.DoesNotExist:
             raise serializers.ValidationError("Product not found")
-        
+
     def create(self, validated_data):
         """
         Handle adding item to cart.
@@ -50,7 +55,8 @@ class CartItemSerializer(serializers.ModelSerializer):
 
         try:
             # Item already in cart - update quantity
-            cart_item = CartItem.objects.get(cart_id=cart_id, product_id=product_id)
+            cart_item = CartItem.objects.get(
+                cart_id=cart_id, product_id=product_id)
             cart_item.quantity += quantity
             cart_item.save()
         except CartItem.DoesNotExist:
@@ -61,7 +67,7 @@ class CartItemSerializer(serializers.ModelSerializer):
                 quantity=quantity
             )
         return cart_item
-    
+
 
 class CartCreateSerializer(serializers.ModelSerializer):
     """

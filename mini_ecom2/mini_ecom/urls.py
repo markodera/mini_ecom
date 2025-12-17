@@ -20,10 +20,16 @@ from rest_framework.authtoken import views
 from django.conf import settings
 from django.conf.urls.static import static
 from accounts.views import CustomLoginView, GoogleLogin, FacebookLogin
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    
+
+    # API Documentation
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+
     # dj-rest-auth endpoints
     path("api/auth/login/", CustomLoginView.as_view(), name="login"),
     path("api/auth/", include("dj_rest_auth.urls")),
@@ -43,6 +49,7 @@ urlpatterns = [
 
     path("api/", include("products.urls")),
     path("api/", include("cart.urls")),
+    path("api/", include("orders.urls"))
 ] + (
     static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     if settings.DEBUG

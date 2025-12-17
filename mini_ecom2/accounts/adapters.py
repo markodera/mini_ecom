@@ -110,7 +110,8 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
         """Return a 202 challenge whenever a confirmed OTP device exists."""
 
         if not user or not getattr(user, "pk", None):
-            logger.debug("Skipping 2FA enforcement because user or primary key missing")
+            logger.debug(
+                "Skipping 2FA enforcement because user or primary key missing")
             return False
 
         has_confirmed_device = user_has_device(user, confirmed=True)

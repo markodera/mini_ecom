@@ -1,8 +1,9 @@
-from django.db import models 
+from django.db import models
 from django.utils.translation import gettext_lazy as _
 from mptt.models import MPTTModel, TreeForeignKey
 from django.utils.text import slugify
 # Create your models here.
+
 
 class Category(MPTTModel):
     """
@@ -25,19 +26,20 @@ class Category(MPTTModel):
 
     class MPTTMeta:
         order_insertion_by = ['name']
-    
+
     class Meta:
         verbose_name_plural = 'categories'
         ordering = ['name']
 
     def __str__(self):
         return self.name
-    
+
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = slugify(self.name)
         super().save(*args, **kwargs)
-    
+
+
 class Product(models.Model):
     """
     Core Products model.
@@ -52,9 +54,9 @@ class Product(models.Model):
     )
     name = models.CharField(max_length=225)
     slug = models.SlugField(
-        max_length=225, 
+        max_length=225,
         unique=True
-        )
+    )
     description = models.TextField()
 
     # Pricing
@@ -68,7 +70,8 @@ class Product(models.Model):
     )
 
     # Inventory
-    sku = models.CharField(max_length=50, unique=True, help_text=_("Stock keeping Unit"))
+    sku = models.CharField(max_length=50, unique=True,
+                           help_text=_("Stock keeping Unit"))
     stock_quantity = models.PositiveIntegerField(default=0)
 
     # Status
@@ -87,17 +90,18 @@ class Product(models.Model):
         ]
 
     def __str__(self):
-        return self.name 
-    
+        return self.name
+
     @property
     def current_price(self):
         """Return discount_price if available, else regular price"""
         return self.discount_price if self.discount_price else self.price
-    
+
     @property
     def in_stock(self):
         return self.stock_quantity > 0
-    
+
+
 class ProductImage(models.Model):
     """
     Allows multiple images per product
@@ -109,11 +113,12 @@ class ProductImage(models.Model):
         related_name='images'
     )
     image = models.ImageField(upload_to='products/%Y/%m/')
-    alt_text = models.CharField(max_length=225,blank=True, help_text=_("SEO text"))
-    is_featured = models.BooleanField(default=False, help_text=_("Is this the main image?"))
+    alt_text = models.CharField(
+        max_length=225, blank=True, help_text=_("SEO text"))
+    is_featured = models.BooleanField(
+        default=False, help_text=_("Is this the main image?"))
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
 
     def __str__(self):
         return f"Image for {self.product.name}"

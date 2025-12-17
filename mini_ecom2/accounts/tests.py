@@ -31,7 +31,8 @@ class CustomSocialAccountAdapterTests(TestCase):
 
     @staticmethod
     def _build_sociallogin(provider="google", extra_data=None):
-        account = SimpleNamespace(provider=provider, extra_data=extra_data or {})
+        account = SimpleNamespace(
+            provider=provider, extra_data=extra_data or {})
         return SimpleNamespace(account=account)
 
     def test_save_user_sets_display_name_for_google(self):
@@ -81,7 +82,8 @@ class CustomSocialAccountAdapterTests(TestCase):
         with self.assertRaises(ImmediateHttpResponse) as ctx:
             self.adapter.pre_social_login(request, sociallogin)
 
-        self.assertEqual(ctx.exception.response.status_code, status.HTTP_202_ACCEPTED)
+        self.assertEqual(ctx.exception.response.status_code,
+                         status.HTTP_202_ACCEPTED)
         self.assertTrue(request.session.get("requires_2fa"))
 
 

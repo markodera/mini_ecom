@@ -16,11 +16,13 @@ def validate_not_future_date(value):
         raise ValidationError("Date of birth cannot be in the future.")
 
 
-GENDER = [("male", "Male"), ("female", "Female"), ("rather_not_say", "Rather not say")]
+GENDER = [("male", "Male"), ("female", "Female"),
+          ("rather_not_say", "Rather not say")]
 
 
 class CustomUser(AbstractUser):
-    email = models.EmailField(max_length=225, unique=True, null=False, blank=False)
+    email = models.EmailField(
+        max_length=225, unique=True, null=False, blank=False)
     phone_number = PhoneNumberField(blank=True, null=True, unique=True)
     phone_number_verified = models.BooleanField(
         default=False, help_text="Has this phone number has been verified via SMS?"
@@ -46,7 +48,8 @@ class UserProfile(models.Model):
     profile_picture = models.ImageField(
         upload_to="profile_picture/%Y/%m/", blank=True, null=True
     )
-    gender = models.CharField(max_length=20, choices=GENDER, blank=True, null=True)
+    gender = models.CharField(
+        max_length=20, choices=GENDER, blank=True, null=True)
     date_of_birth = models.DateField(
         blank=True, null=True, validators=[validate_not_future_date]
     )

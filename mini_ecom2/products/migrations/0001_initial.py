@@ -31,7 +31,8 @@ class Migration(migrations.Migration):
                 ("updated_at", models.DateTimeField(auto_now=True)),
                 ("lft", models.PositiveIntegerField(editable=False)),
                 ("rght", models.PositiveIntegerField(editable=False)),
-                ("tree_id", models.PositiveIntegerField(db_index=True, editable=False)),
+                ("tree_id", models.PositiveIntegerField(
+                    db_index=True, editable=False)),
                 ("level", models.PositiveIntegerField(editable=False)),
                 (
                     "parent",
@@ -115,7 +116,8 @@ class Migration(migrations.Migration):
                 ("image", models.ImageField(upload_to="products/%Y/%m/")),
                 (
                     "alt_text",
-                    models.CharField(blank=True, help_text="SEO text", max_length=225),
+                    models.CharField(
+                        blank=True, help_text="SEO text", max_length=225),
                 ),
                 (
                     "is_feature",
@@ -137,11 +139,13 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="product",
-            index=models.Index(fields=["slug"], name="products_pr_slug_3edc0c_idx"),
+            index=models.Index(
+                fields=["slug"], name="products_pr_slug_3edc0c_idx"),
         ),
         migrations.AddIndex(
             model_name="product",
-            index=models.Index(fields=["sku"], name="products_pr_sku_ca0cdc_idx"),
+            index=models.Index(
+                fields=["sku"], name="products_pr_sku_ca0cdc_idx"),
         ),
         migrations.AddIndex(
             model_name="product",

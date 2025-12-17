@@ -26,7 +26,8 @@ class Command(BaseCommand):
         if created:
             admin.set_password('admin123')
             admin.save()
-            self.stdout.write(self.style.SUCCESS('admin created: admin@shop.com / admin123'))
+            self.stdout.write(self.style.SUCCESS(
+                'admin created: admin@shop.com / admin123'))
         else:
             self.stdout.write('Admin already exists')
 
@@ -41,33 +42,38 @@ class Command(BaseCommand):
         if created:
             customer.set_password('customer123')
             customer.save()
-            self.stdout.write(self.style.SUCCESS('Customer created: customer@test.com / customer123'))
+            self.stdout.write(self.style.SUCCESS(
+                'Customer created: customer@test.com / customer123'))
         else:
             self.stdout.write('Customer already exists')
 
         electorics, _ = Category.objects.get_or_create(
             name='Electronics',
-            defaults={'slug': 'phone', 'description': 'Electronic device and gadge'}
+            defaults={'slug': 'phone',
+                      'description': 'Electronic device and gadge'}
         )
 
         phones, _ = Category.objects.get_or_create(
             name='Phones',
-            defaults={'slug': 'phones', 'parent':electorics, 'description': 'Smartphones and accessories'}
+            defaults={'slug': 'phones', 'parent': electorics,
+                      'description': 'Smartphones and accessories'}
         )
 
         laptops, _ = Category.objects.get_or_create(
             name='Laptops',
-            defaults={'slug': 'laptops', 'parent':electorics, 'description': 'Notebooks and Ultrabooks'}
+            defaults={'slug': 'laptops', 'parent': electorics,
+                      'description': 'Notebooks and Ultrabooks'}
         )
 
         clothing, _ = Category.objects.get_or_create(
             name='Clothing',
-            defaults={'slug': 'clothing','description': 'Fashion and apparel'}
+            defaults={'slug': 'clothing', 'description': 'Fashion and apparel'}
         )
 
         shoes, _ = Category.objects.get_or_create(
             name='Shoes',
-            defaults={'slug': 'shoes', 'parent':clothing, 'description': 'Footware for all occasions'}
+            defaults={'slug': 'shoes', 'parent': clothing,
+                      'description': 'Footware for all occasions'}
         )
 
         self.stdout.write(self.style.SUCCESS('Categories created'))
@@ -81,10 +87,10 @@ class Command(BaseCommand):
                 'category': phones,
                 'description': 'Latest Apple smartphone with A17 Pro chip',
                 'price': 999.99,
-                'discount_price':949.99,
+                'discount_price': 949.99,
                 'sku': 'IPHONE-15-PRO',
                 'stock_quantity': 50,
-                'is_featured':True
+                'is_featured': True
 
             },
             {
@@ -160,14 +166,15 @@ class Command(BaseCommand):
             CartItem.objects.get_or_create(
                 cart=cart,
                 product=iphone,
-                defaults={'quantity':1}
+                defaults={'quantity': 1}
             )
             CartItem.objects.get_or_create(
                 cart=cart,
                 product=nike,
-                defaults={'quantity':2}
+                defaults={'quantity': 2}
             )
-            self.stdout.write(self.style.SUCCESS('Sample cart created for customer'))
+            self.stdout.write(self.style.SUCCESS(
+                'Sample cart created for customer'))
 
         else:
             self.stdout.write('Customer Cart already exists')
@@ -175,7 +182,8 @@ class Command(BaseCommand):
         guest_cart = Cart.objects.create()
         macbook = Product.objects.get(sku='MACBOOK-PRO-16')
         CartItem.objects.create(cart=guest_cart, product=macbook, quantity=1)
-        self.stdout.write(self.style.SUCCESS(f'Guest cart created successfully{guest_cart.id}'))
+        self.stdout.write(self.style.SUCCESS(
+            f'Guest cart created successfully{guest_cart.id}'))
 
         # Summary
         self.stdout.write('')

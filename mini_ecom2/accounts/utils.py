@@ -33,7 +33,8 @@ def resolve_display_name(user, persist=False):
     if user.display_name:
         return user.display_name
 
-    fallback = " ".join(filter(None, [user.first_name, user.last_name])).strip()
+    fallback = " ".join(
+        filter(None, [user.first_name, user.last_name])).strip()
     if not fallback:
         fallback = user.username or user.email.split("@")[0]
 
@@ -46,7 +47,8 @@ def resolve_display_name(user, persist=False):
 
 def get_social_avater(user, provider="facebook"):
     if provider:
-        social = SocialAccount.objects.filter(user=user, provider=provider).first()
+        social = SocialAccount.objects.filter(
+            user=user, provider=provider).first()
         if social:
             avatar = _extract_avatar_from_social(social)
             if avatar:

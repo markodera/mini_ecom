@@ -1,4 +1,6 @@
 from rest_framework import serializers
+from drf_spectacular.utils import extend_schema_field
+from drf_spectacular.types import OpenApiTypes
 from .models import CustomUser, UserProfile
 from dj_rest_auth.registration.serializers import RegisterSerializer
 from dj_rest_auth.serializers import LoginSerializer, UserDetailsSerializer
@@ -41,8 +43,10 @@ class CustomUserDetailsSerializer(serializers.ModelSerializer):
             "social_accounts",
             "has_2fa",
         )
-        read_only_fields = ("email", "social_accounts", "has_2fa", "phone_verified")
+        read_only_fields = ("email", "social_accounts",
+                            "has_2fa", "phone_verified")
 
+    @extend_schema_field(OpenApiTypes.URI)
     def get_profile_picture(self, obj):
         """Get profile picture url"""
         profile = getattr(obj, "profile", None)
@@ -56,24 +60,29 @@ class CustomUserDetailsSerializer(serializers.ModelSerializer):
             return build_absolute_url(self.context.get("request"), url)
         return None
 
+    @extend_schema_field(OpenApiTypes.DATE)
     def get_date_of_birth(self, obj):
         profile = getattr(obj, "profile", None)
         return profile.date_of_birth if profile else None
 
+    @extend_schema_field({'type': 'array', 'items': {'type': 'object', 'properties': {'provider': {'type': 'string'}, 'uid': {'type': 'string'}, 'date_joined': {'type': 'string', 'format': 'date-time'}}}})
     def get_social_accounts(self, obj):
         """Conected social accounts"""
         account = SocialAccount.objects.filter(user=obj)
         return [
-            {"provider": acc.provider, "uid": acc.uid, "date_joined": acc.date_joined}
+            {"provider": acc.provider, "uid": acc.uid,
+                "date_joined": acc.date_joined}
             for acc in account
         ]
 
+    @extend_schema_field(OpenApiTypes.BOOL)
     def get_has_2fa(self, obj):
         """Check if user has 2FA"""
         from django_otp import user_has_device
 
         return user_has_device(obj)
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_display_name(self, obj):
         return resolve_display_name(obj, persist=True)
 
@@ -155,7 +164,8 @@ class CustomRegisterSerializer(RegisterSerializer):
         user.save()
         # Send verification email
         email_address, _ = EmailAddress.objects.get_or_create(
-            user=user, email=user.email, defaults={"primary": True, "verified": False}
+            user=user, email=user.email, defaults={
+                "primary": True, "verified": False}
         )
         confirmation = EmailConfirmationHMAC(email_address)
         confirmation.send(request)
@@ -194,7 +204,8 @@ class CustomLoginSerializer(LoginSerializer):
             raise serializers.ValidationError("Invalid credentials")
         # Check email verification
         try:
-            email_address = EmailAddress.objects.get(user=user, email=user.email)
+            email_address = EmailAddress.objects.get(
+                user=user, email=user.email)
             if not email_address.verified:
                 raise serializers.ValidationError(
                     {
@@ -315,7 +326,8 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
         profile_picture = data.get("profile_picture")
         if profile_picture:
-            data["profile_picture"] = build_absolute_url(request, profile_picture)
+            data["profile_picture"] = build_absolute_url(
+                request, profile_picture)
         else:
             avatar = get_social_avatar(instance.user)
             data["profile_picture"] = build_absolute_url(request, avatar)
@@ -337,7 +349,8 @@ class EmailChangeSerializer(serializers.Serializer):
         user = self.context["request"].user
         # Check if it"s same as currenet email
         if value.lower() == user.email.lower():
-            raise serializers.ValidationError("This is your current email address")
+            raise serializers.ValidationError(
+                "This is your current email address")
 
         # Check if email exist in CustomUser
         if CustomUser.objects.filter(email__iexact=value).exists():
@@ -352,7 +365,8 @@ class EmailChangeSerializer(serializers.Serializer):
         user = self.context["request"].user
 
         if not user.check_password(attrs["password"]):
-            raise serializers.ValidationError({"password": "Incorrect password"})
+            raise serializers.ValidationError(
+                {"password": "Incorrect password"})
         return attrs
 
 
@@ -375,9 +389,11 @@ class ResendVerificationEmailSerializer(serializers.Serializer):
             )
 
         try:
-            email_address = EmailAddress.objects.get(user=user, email__iexact=value)
+            email_address = EmailAddress.objects.get(
+                user=user, email__iexact=value)
             if email_address.verified:
-                raise serializers.ValidationError("This email is already verified.")
+                raise serializers.ValidationError(
+                    "This email is already verified.")
         except EmailAddress.DoesNotExist:
             pass
 
@@ -500,11 +516,13 @@ class PhoneNumberUpdateSerializer(serializers.Serializer):
             # Update phone number and reset verification
             instance.phone_number = str(phone_number)
             instance.phone_number_verified = False
-            instance.save(update_fields=["phone_number", "phone_number_verified"])
+            instance.save(
+                update_fields=["phone_number", "phone_number_verified"])
         else:
             # Remove old phone number
             instance.phone_number = None
             instance.phone_number_verified = False
-            instance.save(update_fields=["phone_number", "phone_number_verified"])
+            instance.save(
+                update_fields=["phone_number", "phone_number_verified"])
 
         return instance

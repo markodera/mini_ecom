@@ -9,6 +9,7 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
+from datetime import timedelta
 import os
 from pathlib import Path
 from dotenv import load_dotenv
@@ -24,9 +25,10 @@ load_dotenv()
 SECRET_KEY = os.getenv("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
+# DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",")
 
 FRONTEND_URL = "http://localhost:3000"
 
@@ -60,10 +62,14 @@ INSTALLED_APPS = [
     # Filters
     "django_filters",
 
+    # Documentation
+    "drf_spectacular",
+
     # Apps
     "accounts",
     "products",
     "cart",
+    "orders",
 ]
 
 MIDDLEWARE = [
@@ -166,7 +172,8 @@ AUTH_USER_MODEL = "accounts.CustomUser"
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "dj_rest_auth.jwt_auth.JWTCookieAuthentication",  # Web (cookies)
-        "rest_framework_simplejwt.authentication.JWTAuthentication",  # Mobile (header)
+        # Mobile (header)
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
         "rest_framework.authentication.SessionAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": [
@@ -177,9 +184,27 @@ REST_FRAMEWORK = {
         'django_filters.rest_framework.DjangoFilterBackend',
         'rest_framework.filters.SearchFilter',
         'rest_framework.filters.OrderingFilter',
-    ]
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20,
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
+# API Documentation settings
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Mini Ecom API',
+    'DESCRIPTION': 'E-commerce API with accounts, products, cart, orders and payments',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'COMPONENT_SPLIT_REQUEST': True,
+    'TAGS': [
+        {'name': 'auth', 'description': 'Authentication, Registration & Social Login'},
+        {'name': 'accounts', 'description': 'User Profile, 2FA & Phone Verification'},
+        {'name': 'products', 'description': 'Product Catalog & Categories'},
+        {'name': 'cart', 'description': 'Shopping Cart Management'},
+        {'name': 'orders', 'description': 'Orders, Checkout & Payments'},
+    ]
+}
 
 SITE_ID = 1
 
@@ -190,8 +215,6 @@ AUTHENTICATION_BACKENDS = [
     "allauth.account.auth_backends.AuthenticationBackend",
 ]
 
-
-from datetime import timedelta
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
@@ -274,19 +297,18 @@ ACCOUNT_MAX_EMAIL_ADDRESSES = 1
 ACCOUNT_EMAIL_CONFIRMATION_HMAC = True
 
 # Set Up STMP for sending emails
-# EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-# EMAIL_HOST = "smtp.gmail.com"
-# EMAIL_PORT = 587
-# EMAIL_USE_TLS = True
-# EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
-# EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
-# DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+# EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
-PHONENUMBER_DEFAULT_REGION = "NG"
 
-DEFAULT_FROM_EMAIL = "noreply@mini-ecom.com"
+# DEFAULT_FROM_EMAIL = "noreply@mini-ecom.com"
 
 PASSWORD_RESET_TIMEOUT = 3600
 
@@ -332,6 +354,10 @@ SOCIALACCOUNT_FACEBOOK_CLIENT_SECRET = os.getenv("FACEBOOK_CLIENT_SECRET")
 TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
 TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
 TWILIO_PHONE_NUMBER = os.getenv("TWILIO_PHONE_NUMBER")
+
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
+STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY", "")
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
 
 CACHES = {
     "default": {
