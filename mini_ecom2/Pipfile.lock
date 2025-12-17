@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "c6ccebd1ab6371310d58e81182fab44721661768448a2828907e6c5f3cfa5824"
+            "sha256": "96e2722be6314ea8ddfe7d88beabc1406d42a600eedf9ddf5803760558fb6db0"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -526,6 +526,14 @@
             "index": "pypi",
             "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3, 3.4'",
             "version": "==0.7.1"
+        },
+        "dj-database-url": {
+            "hashes": [
+                "sha256:43950018e1eeea486bf11136384aec0fe55b29fe6fd8a44553231b85661d9383",
+                "sha256:8994961efb888fc6bf8c41550870c91f6f7691ca751888ebaa71442b7f84eff8"
+            ],
+            "index": "pypi",
+            "version": "==3.0.1"
         },
         "dj-rest-auth": {
             "extras": [

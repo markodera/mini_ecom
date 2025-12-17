@@ -46,6 +46,10 @@ twilio = "*"
 stripe = "*"
 django-mptt = "*"
 drf-spectacular = "*"
+gunicorn = "*"
+whitenoise = "*"
+psycopg2-binary = "*"
+dj-database-url = "*"
 
 [dev-packages]
 pytest = "~=8.4.1"

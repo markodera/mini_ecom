@@ -1,0 +1,1 @@
+web: gunicorn mini_ecom.wsgi --bind 0.0.0.0:$PORT
