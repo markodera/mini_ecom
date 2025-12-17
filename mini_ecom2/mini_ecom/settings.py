@@ -20,9 +20,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 load_dotenv()
 
-# Railway environment detection
+# Railway environment detection - check for DATABASE_URL which Railway always provides
 RAILWAY_ENVIRONMENT = os.getenv('RAILWAY_ENVIRONMENT')
-IS_PRODUCTION = RAILWAY_ENVIRONMENT == 'production'
+DATABASE_URL = os.getenv('DATABASE_URL')
+IS_PRODUCTION = RAILWAY_ENVIRONMENT == 'production' or DATABASE_URL is not None
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -31,7 +32,7 @@ IS_PRODUCTION = RAILWAY_ENVIRONMENT == 'production'
 SECRET_KEY = os.getenv("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv("DEBUG", "False").lower() == "true" if not IS_PRODUCTION else False
+DEBUG = not IS_PRODUCTION and os.getenv("DEBUG", "False").lower() == "true"
 
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",") if os.getenv("ALLOWED_HOSTS") else []
 if IS_PRODUCTION:
