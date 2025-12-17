@@ -5,7 +5,7 @@ builder = "nixpacks"
 aptPkgs = []
 
 [deploy]
-startCommand = "cd mini_ecom2 && python manage.py migrate && python manage.py collectstatic --noinput && gunicorn mini_ecom.wsgi --bind 0.0.0.0:$PORT"
+startCommand = "python manage.py migrate && python manage.py collectstatic --noinput && gunicorn mini_ecom.wsgi --bind 0.0.0.0:$PORT"
 
 [general]
 root = "mini_ecom2"
