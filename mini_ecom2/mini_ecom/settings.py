@@ -14,6 +14,7 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -23,7 +24,8 @@ load_dotenv()
 # Railway environment detection - check for DATABASE_URL which Railway always provides
 RAILWAY_ENVIRONMENT = os.getenv('RAILWAY_ENVIRONMENT')
 DATABASE_URL = os.getenv('DATABASE_URL')
-IS_PRODUCTION = bool(DATABASE_URL)
+IS_RAILWAY = any(key.startswith("RAILWAY_") for key in os.environ)
+IS_PRODUCTION = IS_RAILWAY or bool(DATABASE_URL)
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -126,21 +128,44 @@ if DATABASE_URL:
             default=DATABASE_URL,
             conn_max_age=600,
             conn_health_checks=True,
-            ssl_require=True
+            ssl_require=True,
         )
     }
 else:
-    # Local development database
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": os.getenv("NAME"),
-            "USER": os.getenv("USER"),
-            "PASSWORD": os.getenv("PASSWORD"),
-            "HOST": os.getenv("HOST"),
-            "PORT": os.getenv("PORT", 5432),
+    # Fallback (local dev, or Railway if DATABASE_URL is not exposed)
+    # IMPORTANT: Railway sets $PORT for the web process (often 8080). Do NOT use it for Postgres.
+    db_name = os.getenv("PGDATABASE") or os.getenv("DB_NAME") or os.getenv("NAME")
+    db_user = os.getenv("PGUSER") or os.getenv("DB_USER") or os.getenv("USER")
+    db_password = os.getenv("PGPASSWORD") or os.getenv("DB_PASSWORD") or os.getenv("PASSWORD")
+    db_host = os.getenv("PGHOST") or os.getenv("DB_HOST") or os.getenv("HOST")
+    db_port = os.getenv("PGPORT") or os.getenv("DB_PORT") or "5432"
+
+    has_explicit_db = all([db_name, db_user, db_password, db_host])
+    if not has_explicit_db and IS_RAILWAY:
+        raise ImproperlyConfigured(
+            "Database not configured: set DATABASE_URL (recommended on Railway) or PG*/DB_* vars. "
+            "Do not use the Railway $PORT env var for Postgres."
+        )
+
+    if has_explicit_db:
+        DATABASES = {
+            "default": {
+                "ENGINE": "django.db.backends.postgresql",
+                "NAME": db_name,
+                "USER": db_user,
+                "PASSWORD": db_password,
+                "HOST": db_host,
+                "PORT": db_port,
+            }
         }
-    }
+    else:
+        # Last-resort local dev default (keeps manage.py commands usable without Postgres)
+        DATABASES = {
+            "default": {
+                "ENGINE": "django.db.backends.sqlite3",
+                "NAME": BASE_DIR / "db.sqlite3",
+            }
+        }
 
 
 # Password validation
