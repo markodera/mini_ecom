@@ -41,6 +41,14 @@ if IS_PRODUCTION:
     ALLOWED_HOSTS.append('.railway.app')
     ALLOWED_HOSTS.append('mini-ecom2-production.up.railway.app')
 
+CSRF_TRUSTED_ORIGINS = []
+if IS_PRODUCTION:
+    CSRF_TRUSTED_ORIGINS = [
+        'https://*.railway.app',
+        'https://mini-ecom2-production.up.railway.app',
+    ]
+
+
 FRONTEND_URL = "http://localhost:3000"
 
 # Application definition
