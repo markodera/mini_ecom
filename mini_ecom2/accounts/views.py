@@ -48,16 +48,20 @@ class SocialLogin2FAMixin:
     provider_name = "social"
 
     def post(self, request, *args, **kwargs):
-        # Always clear any previous OTP flag before starting a fresh social login
-        request.session.pop("otp_verified", None)
-
-        if "otp_verified" in request.data and "user_id" in request.data:
+        # If this request contains an OTP token, treat it as the 2FA verification step.
+        # We intentionally do this *before* clearing any prior session flags.
+        if "user_id" in request.data and (
+            "otp_token" in request.data or "token" in request.data
+        ):
             return self.verify_2fa_and_login(request)
+
+        # Starting a fresh social login attempt.
+        request.session.pop("otp_verified", None)
 
         try:
             response = super().post(request, *args, **kwargs)
         except ImmediateHttpResponse as exc:
-            self.logger.debug(
+            logger.debug(
                 "Social login intercepted for provider=%s status=%s payload=%s",
                 getattr(self, "provider_name", "social"),
                 getattr(exc.response, "status_code", None),
@@ -83,7 +87,7 @@ class SocialLogin2FAMixin:
             provider = request.session.get(
                 "social_provider", self.provider_name)
 
-            self.logger.debug(
+            logger.debug(
                 "Social login response converted to 202 (user=%s provider=%s)",
                 user_id,
                 provider,
@@ -105,7 +109,7 @@ class SocialLogin2FAMixin:
             try:
                 request.session.save()
             except Exception:
-                self.logger.debug(
+                logger.debug(
                     "Social login session save skipped", exc_info=True)
 
             challenge_payload = {
@@ -133,7 +137,7 @@ class SocialLogin2FAMixin:
             )
 
         session_user_id = request.session.get("pending_social_login_user_id")
-        self.logger.debug(
+        logger.debug(
             "Verifying social 2FA: session_id=%s payload_user=%s session_user=%s session_key=%s",
             request.session.session_key,
             user_id,
@@ -252,7 +256,9 @@ class CustomLoginView(DjRestAuthLoginView):
 
     def post(self, request, *args, **kwargs):
         # If user has 2fa verification step
-        if "otp_verified" in request.data and "user_id" in request.data:
+        if "user_id" in request.data and (
+            "otp_token" in request.data or "token" in request.data
+        ):
             return self.verify_2fa_and_login(request)
 
         # Else proceed with normal login

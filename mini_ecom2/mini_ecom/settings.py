@@ -12,9 +12,26 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from datetime import timedelta
 import os
 from pathlib import Path
+import warnings
 from dotenv import load_dotenv
 import dj_database_url
 from django.core.exceptions import ImproperlyConfigured
+
+# dj-rest-auth currently triggers deprecation warnings when importing its registration
+# serializers against newer allauth versions. Filter these specific warnings to
+# keep production logs clean until dependencies are upgraded.
+warnings.filterwarnings(
+    "ignore",
+    message=r"app_settings\.USERNAME_REQUIRED is deprecated.*",
+    category=UserWarning,
+    module=r"dj_rest_auth\.registration\.serializers",
+)
+warnings.filterwarnings(
+    "ignore",
+    message=r"app_settings\.EMAIL_REQUIRED is deprecated.*",
+    category=UserWarning,
+    module=r"dj_rest_auth\.registration\.serializers",
+)
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent

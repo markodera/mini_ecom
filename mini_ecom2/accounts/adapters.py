@@ -114,6 +114,18 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
                 "Skipping 2FA enforcement because user or primary key missing")
             return False
 
+        # If the user already passed the OTP step for this pending social login,
+        # do not raise another challenge.
+        if request.session.get("otp_verified") and str(
+            request.session.get("pending_social_login_user_id")
+        ) == str(user.pk):
+            logger.debug(
+                "Skipping 2FA enforcement: OTP already verified for pending social login (user=%s provider=%s)",
+                getattr(user, "pk", None),
+                provider,
+            )
+            return False
+
         has_confirmed_device = user_has_device(user, confirmed=True)
         logger.debug(
             "2FA enforcement check: user=%s provider=%s confirmed_device=%s otp_verified_session=%s",

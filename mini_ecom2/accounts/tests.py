@@ -74,7 +74,7 @@ class CustomSocialAccountAdapterTests(TestCase):
 
         sociallogin = SimpleNamespace(
             is_existing=False,
-            account=SimpleNamespace(user=user, provider="google"),
+            account=SimpleNamespace(user=user, user_id=user.id, provider="google"),
         )
 
         request = self._attach_session(self.factory.post("/api/auth/google/"))
@@ -109,7 +109,6 @@ class GoogleLogin2FATests(TestCase):
         request = self.factory.post(
             "/api/auth/google/",
             {
-                "otp_verified": True,
                 "user_id": self.user.id,
                 "otp_token": "123456",
             },
@@ -141,7 +140,6 @@ class GoogleLogin2FATests(TestCase):
         request = self.factory.post(
             "/api/auth/google/",
             {
-                "otp_verified": True,
                 "user_id": self.user.id,
                 "token": "654321",
             },
