@@ -49,6 +49,7 @@ whitenoise = "*"
 psycopg2-binary = "*"
 dj-database-url = "*"
 drf-nested-routers = "*"
+django-anymail = "*"
 
 [dev-packages]
 pytest = "~=8.4.1"

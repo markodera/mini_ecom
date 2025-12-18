@@ -34,7 +34,7 @@ IS_PRODUCTION = IS_RAILWAY or bool(DATABASE_URL)
 SECRET_KEY = os.getenv("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = not IS_PRODUCTION and os.getenv("DEBUG", "False").lower() == "true"
+DEBUG = not IS_PRODUCTION and os.getenv("DEBUG", "True").lower() == "true"
 
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",") if os.getenv("ALLOWED_HOSTS") else []
 if IS_PRODUCTION:
@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework_simplejwt.token_blacklist",
     "phonenumber_field",
+    "anymail",
     # Authentication apps
     "dj_rest_auth",
     "dj_rest_auth.registration",
@@ -356,15 +357,23 @@ ACCOUNT_MAX_EMAIL_ADDRESSES = 1
 ACCOUNT_EMAIL_CONFIRMATION_HMAC = True
 
 # Set Up STMP for sending emails
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = "smtp.gmail.com"
-EMAIL_PORT = 587
-EMAIL_USE_SSL = True  # Changed from EMAIL_USE_TLS
-EMAIL_USE_TLS = False
-EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
-EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
-DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
-EMAIL_TIMEOUT = 30
+# EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+# EMAIL_HOST = "smtp.gmail.com"
+# EMAIL_PORT = 587
+# EMAIL_USE_SSL = True  # Changed from EMAIL_USE_TLS
+# EMAIL_USE_TLS = False
+# EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
+# EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
+# DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+# EMAIL_TIMEOUT = 30
+
+EMAIL_BACKEND = "anymail.backends.mailersend.EmailBackend"
+
+ANYMAIL = {
+    "MAILERSEND_API_TOKEN": os.getenv("MAILERSEND_API_TOKEN"),  
+}
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL")
+
 
 # EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
