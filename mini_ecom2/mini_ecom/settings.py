@@ -51,7 +51,7 @@ IS_PRODUCTION = IS_RAILWAY or bool(DATABASE_URL)
 SECRET_KEY = os.getenv("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = not IS_PRODUCTION and os.getenv("DEBUG", "True").lower() == "true"
+DEBUG = not IS_PRODUCTION and os.getenv("DEBUG", "False").lower() == "true"
 
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",") if os.getenv("ALLOWED_HOSTS") else []
 if IS_PRODUCTION:
